@@ -1,31 +1,35 @@
 {{define "main"}}
-<h1>Privacy</h1>
-<p class="lead">What an upload contains, what it doesn't, and how to get a result removed.</p>
+<section class="prose-hero">
+	<h1 class="d2">Privacy</h1>
+	<p class="lede">What an upload contains, what it doesn't, and how to get a result removed.</p>
+</section>
 
-<h2>What gets uploaded</h2>
-<ul>
-	<li>Hardware: CPU model, cores, RAM, swap, disk size, disk type and filesystem</li>
-	<li>OS, kernel, virtualization type, uptime</li>
-	<li>The benchmark numbers and how long the run took</li>
-	<li>Provider name, ASN and country of the server</li>
-	<li>A leaderboard name, only if you pass <code>-L</code></li>
-</ul>
-<p>It's the same JSON that <code>--json</code> prints, so you can check it before sharing. With <code>--no-share</code> nothing is uploaded.</p>
+<div class="prose">
+	<h2>What gets uploaded</h2>
+	<ul>
+		<li>Hardware: CPU model, cores, RAM, swap, disk size, disk type and filesystem</li>
+		<li>OS, kernel, virtualization type, uptime</li>
+		<li>The benchmark numbers and how long the run took</li>
+		<li>Provider name, ASN and country of the server</li>
+		<li>A leaderboard name, only if you pass <code>-L</code></li>
+	</ul>
+	<p>It's the same JSON that <code>--json</code> prints, so you can check it before sharing. With <code>--no-share</code> nothing is uploaded.</p>
 
-<h2>What doesn't</h2>
-<ul>
-	<li>IP addresses. They're not in the upload, the nodebench server doesn't log them and the web server in front of it has its access log turned off.</li>
-	<li>The city. Older versions of the script sent it. The server drops it, also for results stored before that change.</li>
-	<li>Hostnames, user names, file paths.</li>
-	<li>There are no cookies, trackers or analytics on this site.</li>
-</ul>
+	<h2>What doesn't</h2>
+	<ul>
+		<li>IP addresses. They're not in the upload, the nodebench server doesn't log them and the web server in front of it has its access log turned off.</li>
+		<li>The city. Older versions of the script sent it. The server drops it, also for results stored before that change.</li>
+		<li>Hostnames, user names, file paths.</li>
+		<li>There are no cookies, trackers or analytics on this site.</li>
+	</ul>
 
-<h2>Who can see a result</h2>
-<p>Anyone who has the link. Result ids are random and results aren't listed anywhere unless you ran nodebench with <code>-L</code>. Then the result shows up on the leaderboard and under recent results on the home page.</p>
+	<h2>Who can see a result</h2>
+	<p>Anyone who has the link. Result ids are random and results aren't listed anywhere unless you ran nodebench with <code>-L</code>. Then the result shows up on the leaderboard and under recent results on the home page.</p>
 
-<h2>Rate limiting</h2>
-<p>To stop people from filling the disk, the server counts uploads per IP address in memory for an hour. That counter is never written anywhere.</p>
+	<h2>Rate limiting</h2>
+	<p>To stop people from filling the disk, the server counts uploads per IP address in memory for an hour. That counter is never written anywhere.</p>
 
-<h2>Removing a result</h2>
-<p>Send the link to InstantNode through <a href="https://instantnode.eu/contact">instantnode.eu/contact</a> and we delete it. It helps if you can show it's yours, for example by running the script again from the same server.</p>
+	<h2>Removing a result</h2>
+	<p>Send the link to InstantNode through <a href="https://instantnode.eu/contact">instantnode.eu/contact</a> and we delete it. It helps if you can show it's yours, for example by running the script again from the same server.</p>
+</div>
 {{end}}

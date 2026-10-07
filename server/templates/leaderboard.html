@@ -1,40 +1,51 @@
 {{define "main"}}{{$d := .Data}}
-<h1>Leaderboard</h1>
-<p class="lead">Results from people who ran nodebench with <code>-L</code>. Self-reported, on all kinds of hardware, so read it as a rough guide. Only the best run per name, CPU and network is listed.</p>
+<section class="prose-hero">
+	<h1 class="d2">Leaderboard</h1>
+	<p class="lede">Results from people who ran nodebench with <code>-L</code>. Self-reported, on all kinds of hardware, so read it as a rough guide. Only the best run per name, CPU and network is listed.</p>
+	<div>
+		<nav class="seg" aria-label="Ranking">
+			{{range $d.Metrics}}<a href="?m={{.Key}}{{with $d.Virt}}&amp;virt={{.}}{{end}}{{with $d.Country}}&amp;country={{.}}{{end}}"{{if eq .Key $d.M.Key}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}
+		</nav>
+		<form class="filters" method="get">
+			<input type="hidden" name="m" value="{{$d.M.Key}}">
+			<label>Type<select name="virt" onchange="this.form.submit()"><option value="">all</option>{{range $d.Virts}}<option{{if eq . $d.Virt}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+			<label>Country<select name="country" onchange="this.form.submit()"><option value="">all</option>{{range $d.Countries}}<option{{if eq . $d.Country}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+			<noscript><button class="btn btn-ghost btn-sm" type="submit">Filter</button></noscript>
+		</form>
+	</div>
+</section>
 
-<nav class="tabs" aria-label="Ranking">
-	{{range $d.Metrics}}<a href="?m={{.Key}}{{with $d.Virt}}&amp;virt={{.}}{{end}}{{with $d.Country}}&amp;country={{.}}{{end}}"{{if eq .Key $d.M.Key}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}
-</nav>
-<form class="filters" method="get">
-	<input type="hidden" name="m" value="{{$d.M.Key}}">
-	<label>type<select name="virt" onchange="this.form.submit()"><option value="">all</option>{{range $d.Virts}}<option{{if eq . $d.Virt}} selected{{end}}>{{.}}</option>{{end}}</select></label>
-	<label>country<select name="country" onchange="this.form.submit()"><option value="">all</option>{{range $d.Countries}}<option{{if eq . $d.Country}} selected{{end}}>{{.}}</option>{{end}}</select></label>
-	<noscript><button type="submit">filter</button></noscript>
-</form>
+<section class="sec board">
+	<div class="wrap">
+		<div class="card">
+		{{if $d.Rows}}
+			<div class="scroll"><table class="spec">
+				<thead><tr><th class="n">#</th><th>Name</th><th class="hide-s">CPU</th><th class="hide-s">Network</th><th class="hide-s">Type</th><th class="n">{{$d.M.Short}}</th><th class="hide-s"></th><th class="n hide-s">Date</th></tr></thead>
+				<tbody>
+				{{range $d.Rows}}
+				<tr>
+					<td class="rank n">{{.Rank}}</td>
+					<td><a href="/r/{{.E.ID}}">{{.E.Name}}</a><span class="sub show-s">{{.E.CPU}}, {{.E.Cores}} cores</span></td>
+					<td class="hide-s">{{.E.CPU}}<span class="sub">{{.E.Cores}} cores</span></td>
+					<td class="hide-s">{{.E.Org}}<span class="sub">{{.E.ASN}}{{if .E.Country}}{{if .E.ASN}}, {{end}}{{.E.Country}}{{end}}</span></td>
+					<td class="hide-s">{{.E.Virt}}</td>
+					<td class="n">{{.Value}}</td>
+					<td class="barc hide-s">{{bar .Frac "rank" .Value}}</td>
+					<td class="n hide-s">{{.E.Date}}</td>
+				</tr>
+				{{end}}
+				</tbody>
+			</table></div>
+		{{else}}
+			<p class="empty">{{if or $d.Virt $d.Country}}Nothing matches these filters.{{else}}Nobody is on the board yet.{{end}} Run it with <code>-L</code> to be the first.</p>
+		{{end}}
+		</div>
 
-{{if $d.Rows}}
-<div class="tbl"><table>
-	<thead><tr><th class="n">#</th><th>Name</th><th>CPU</th><th>Network</th><th>Type</th><th class="n">{{$d.M.Short}}</th><th></th><th class="n">Date</th></tr></thead>
-	<tbody>
-	{{range $d.Rows}}
-	<tr>
-		<td class="n">{{.Rank}}</td>
-		<td><a href="/r/{{.E.ID}}">{{.E.Name}}</a></td>
-		<td>{{.E.CPU}}<span class="sub">{{.E.Cores}} cores</span></td>
-		<td>{{.E.Org}}<span class="sub">{{.E.ASN}}{{if .E.Country}}{{if .E.ASN}}, {{end}}{{.E.Country}}{{end}}</span></td>
-		<td>{{.E.Virt}}</td>
-		<td class="n">{{.Value}}</td>
-		<td class="barc" style="width:18%">{{bar .Frac "rank" .Value}}</td>
-		<td class="n">{{.E.Date}}</td>
-	</tr>
-	{{end}}
-	</tbody>
-</table></div>
-{{else}}
-<p class="empty">{{if or $d.Virt $d.Country}}Nothing matches these filters.{{else}}Nobody is on the board yet.{{end}} Run it with <code>-L</code> to be the first.</p>
-{{end}}
-
-<h2>Getting on the board</h2>
-<div class="cmd"><code id="cmdL">{{.OneLiner}} -s -- -L "your name"</code><button class="copy" type="button" data-copy="cmdL">copy</button></div>
-<p class="small">Quick runs (<code>-q</code>) and results with numbers no real hardware produces stay shareable but aren't ranked. <a href="/docs#leaderboard">More on ranking</a>.</p>
+		<div class="pp-spec-price">
+			<span>Get on the board</span>
+			<div class="cmd"><code id="cmdL">{{.OneLiner}} -s -- -L "your name"</code><button class="btn btn-light btn-sm" type="button" data-copy="cmdL">Copy</button></div>
+		</div>
+		<p class="small center mt">Quick runs (<code>-q</code>) and results with numbers no real hardware produces stay shareable but aren't ranked. <a href="/docs#leaderboard">More on ranking</a>.</p>
+	</div>
+</section>
 {{end}}

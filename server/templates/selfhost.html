@@ -1,31 +1,37 @@
 {{define "main"}}
-<h1>Running your own share server</h1>
-<p class="lead">The server is one Go binary. Results are stored as JSON files in a directory, there's no database.</p>
+<section class="prose-hero">
+	<h1 class="d2">Running your own share server</h1>
+	<p class="lede">The server is one Go binary. Results are stored as JSON files in a directory, there's no database.</p>
+</section>
 
-<h2>Build and start</h2>
-<pre><span class="d">$</span> git clone https://github.com/instantnode/nodebench
+<div class="prose">
+	<h2>Build and start</h2>
+	<pre><span class="d">$</span> git clone https://github.com/instantnode/nodebench
 <span class="d">$</span> cd nodebench/server
 <span class="d">$</span> go build -o nodebench-server .
 <span class="d">$</span> ./nodebench-server -base https://bench.example.com -data /var/lib/nodebench -script ../nodebench.sh</pre>
-<p>A systemd unit and an nginx config are in <code>deploy/</code>. Put it behind a reverse proxy for TLS and start it with <code>-proxy</code> so the upload limit sees real client addresses. The nginx config turns the access log off, because the pages say IP addresses aren't logged.</p>
+	<p>A systemd unit and an nginx config are in <code>deploy/</code>. Put it behind a reverse proxy for TLS and start it with <code>-proxy</code> so the upload limit sees real client addresses. The nginx config turns the access log off, because the pages say IP addresses aren't logged.</p>
 
-<h2>Point the script at it</h2>
-<pre><span class="d">$</span> curl -sL https://bench.example.com | NODEBENCH_URL=https://bench.example.com bash</pre>
-<p>The server hands out the script itself when it's fetched with curl or wget, so the one-liner works against your host too.</p>
+	<h2>Point the script at it</h2>
+	<pre><span class="d">$</span> curl -sL https://bench.example.com | NODEBENCH_URL=https://bench.example.com bash</pre>
+	<p>The server hands out the script itself when it's fetched with curl or wget, so the one-liner works against your host too.</p>
 
-<h2>Settings</h2>
-<dl class="opts">
-	<dt>-listen</dt><dd>listen address, default <code>:8080</code> (<code>NODEBENCH_LISTEN</code>)</dd>
-	<dt>-base</dt><dd>public URL used in share links (<code>NODEBENCH_BASE</code>)</dd>
-	<dt>-data</dt><dd>where results are stored, default <code>./data</code> (<code>NODEBENCH_DATA</code>)</dd>
-	<dt>-script</dt><dd>the script served to curl and wget on <code>/</code> (<code>NODEBENCH_SCRIPT</code>)</dd>
-	<dt>-proxy</dt><dd>trust <code>X-Forwarded-For</code>, only behind a proxy (<code>NODEBENCH_PROXY</code>)</dd>
-	<dt>-rate</dt><dd>uploads per IP per hour, default 20</dd>
-	<dt>-example</dt><dd>a result id to link from the home page (<code>NODEBENCH_EXAMPLE</code>)</dd>
-	<dt>NODEBENCH_ADMIN_TOKEN</dt><dd>enables taking results off the leaderboard</dd>
-</dl>
+	<h2>Settings</h2>
+	<div class="pp-spec flags one">
+		<dl>
+			<div><dt>-listen</dt><dd>listen address, default <code>:8080</code> (<code>NODEBENCH_LISTEN</code>)</dd></div>
+			<div><dt>-base</dt><dd>public URL used in share links (<code>NODEBENCH_BASE</code>)</dd></div>
+			<div><dt>-data</dt><dd>where results are stored, default <code>./data</code> (<code>NODEBENCH_DATA</code>)</dd></div>
+			<div><dt>-script</dt><dd>the script served to curl and wget on <code>/</code> (<code>NODEBENCH_SCRIPT</code>)</dd></div>
+			<div><dt>-proxy</dt><dd>trust <code>X-Forwarded-For</code>, only behind a proxy (<code>NODEBENCH_PROXY</code>)</dd></div>
+			<div><dt>-rate</dt><dd>uploads per IP per hour, default 20</dd></div>
+			<div><dt>-example</dt><dd>a result id to link from the home page (<code>NODEBENCH_EXAMPLE</code>)</dd></div>
+			<div><dt>NODEBENCH_ADMIN_TOKEN</dt><dd>enables taking results off the leaderboard</dd></div>
+		</dl>
+	</div>
 
-<h2>Moderation</h2>
-<pre><span class="d">$</span> curl -X POST -H "Authorization: Bearer $TOKEN" https://bench.example.com/api/results/&lt;id&gt;/hide</pre>
-<p>This takes a result off the leaderboard. The result page itself stays online. Hidden ids are kept in <code>hidden.txt</code> in the data directory, so a backup of that directory is a backup of everything.</p>
+	<h2>Moderation</h2>
+	<pre><span class="d">$</span> curl -X POST -H "Authorization: Bearer $TOKEN" https://bench.example.com/api/results/&lt;id&gt;/hide</pre>
+	<p>This takes a result off the leaderboard. The result page itself stays online. Hidden ids are kept in <code>hidden.txt</code> in the data directory, so a backup of that directory is a backup of everything.</p>
+</div>
 {{end}}

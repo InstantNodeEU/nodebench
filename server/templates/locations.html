@@ -1,18 +1,26 @@
 {{define "main"}}
-<h1>Test locations</h1>
-<p class="lead">A normal run tests upload, download, ping and packet loss against the same {{.Data.Standard}} public iperf3 servers, so network numbers mean the same thing from one result to the next. <code>-x</code> adds the other {{.Data.Extra}}, <code>-l</code> picks regions.</p>
+<section class="prose-hero">
+	<h1 class="d2">Test locations</h1>
+	<p class="lede">A normal run tests upload, download, ping and packet loss against the same {{.Data.Standard}} public iperf3 servers, so network numbers mean the same thing from one result to the next. <code>-x</code> adds the other {{.Data.Extra}}, <code>-l</code> picks regions.</p>
+</section>
 
-<div class="mapbox">{{.Data.Map}}</div>
-<p class="keys"><i class="dot"></i>standard<i class="dot ours"></i>InstantNode<i class="dot ext"></i>only with -x</p>
-
-<div class="tbl"><table>
-	<thead><tr><th>Location</th><th>Network</th><th>Region</th><th>Host</th><th>Ports</th><th>Runs</th></tr></thead>
-	<tbody>
-	{{range .Data.Sites}}
-	<tr{{if .Ours}} class="ours"{{end}}><td>{{.Location}}</td><td>{{.Provider}}</td><td class="m">{{.Region}}</td><td class="m">{{.Host}}</td><td class="m">{{.Ports}}</td><td>{{if .Extended}}-x{{else}}always{{end}}</td></tr>
-	{{end}}
-	</tbody>
-</table></div>
-
-<p>Eygelshoven is our own network, between Amsterdam and Frankfurt. We test against it first because we run nodebench and it's the link we know best, but it's an ordinary location in the results. The others are public servers run by their providers. Each one answered from our network before it went on this list. Public iperf3 servers are shared and sometimes busy, so a result can show a failed direction now and then.</p>
+<section class="sec">
+	<div class="wrap">
+		<div class="card map-card">
+			{{.Data.Map}}
+			<p class="keys"><span><i class="dot"></i>standard</span><span><i class="dot ours"></i>InstantNode</span><span><i class="dot ext"></i>only with -x</span></p>
+		</div>
+		<div class="card">
+			<div class="scroll"><table class="spec">
+				<thead><tr><th>Location</th><th>Network</th><th class="hide-s">Region</th><th class="hide-s">Host</th><th class="hide-s">Ports</th><th>Runs</th></tr></thead>
+				<tbody>
+				{{range .Data.Sites}}
+				<tr><td>{{.Location}}{{if .Ours}}<span class="badge">Ours</span>{{end}}</td><td>{{.Provider}}</td><td class="m hide-s">{{.Region}}</td><td class="m hide-s">{{.Host}}</td><td class="m hide-s">{{.Ports}}</td><td>{{if .Extended}}<code class="m">-x</code>{{else}}always{{end}}</td></tr>
+				{{end}}
+				</tbody>
+			</table></div>
+		</div>
+		<p class="small center mt measure">Eygelshoven is our own network, between Amsterdam and Frankfurt. We test against it first because we run nodebench and it's the link we know best, but it's an ordinary location in the results. The others are public servers run by their providers. Each one answered from our network before it went on this list. Public iperf3 servers are shared and sometimes busy, so a result can show a failed direction now and then.</p>
+	</div>
+</section>
 {{end}}

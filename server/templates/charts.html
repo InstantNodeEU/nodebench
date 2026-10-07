@@ -1,46 +1,53 @@
 {{define "cpu-chart"}}
-<p class="keys"><i class="single"></i>1 thread<i></i>{{.Threads}} threads</p>
-<div class="tbl"><table>
-	<thead><tr><th>Test</th><th class="n">1 thread</th><th class="n">{{.Threads}} threads</th><th class="n">Scaling</th><th></th></tr></thead>
-	<tbody>
-	{{range .Rows}}
-	<tr><td class="m">{{.Name}}</td><td class="n">{{.Single}}</td><td class="n">{{.Multi}}</td><td class="n">{{.Scale}}</td><td class="barc">{{bar .SFrac "single" .SingleT}}{{bar .MFrac "multi" .MultT}}</td></tr>
-	{{end}}
-	</tbody>
-</table></div>
-{{with .Steal}}<p class="note">Steal time during the {{$.Threads}} thread run: <span class="mono ping-{{$.StealClass}}">{{.}}</span>. That's CPU time the hypervisor gave to other guests while this one wanted it. Close to 0 is what you want.</p>{{end}}
+<div class="card">
+	<div class="card-head"><h3>Throughput</h3><p class="keys"><span><i class="single"></i>1 thread</span><span><i></i>{{.Threads}} threads</span></p></div>
+	<div class="scroll"><table class="spec">
+		<thead><tr><th>Test</th><th class="n">1 thread</th><th class="n">{{.Threads}} threads</th><th class="n hide-s">Scaling</th><th class="hide-s"></th></tr></thead>
+		<tbody>
+		{{range .Rows}}
+		<tr><td class="m">{{.Name}}</td><td class="n">{{.Single}}</td><td class="n">{{.Multi}}</td><td class="n hide-s">{{.Scale}}</td><td class="barc hide-s">{{bar .SFrac "single" .SingleT}}{{bar .MFrac "multi" .MultT}}</td></tr>
+		{{end}}
+		</tbody>
+	</table></div>
+	{{with .Steal}}<p class="note">Steal time during the {{$.Threads}} thread run: <span class="ping-{{$.StealClass}}">{{.}}</span>. That's CPU time the hypervisor gave to other guests while this one wanted it. Close to 0 is what you want.</p>{{end}}
+</div>
 {{end}}
 
 {{define "disk-chart"}}
-<p class="keys"><i></i>read<i class="write"></i>write</p>
-<div class="tbl"><table>
-	<thead><tr><th>Block</th><th class="n">Read</th><th class="n">Write</th><th class="n">IOPS</th><th></th></tr></thead>
-	<tbody>
-	{{range .Rows}}
-	<tr><td class="m">{{.BS}}</td><td class="n">{{.Read}}</td><td class="n">{{.Write}}</td><td class="n">{{.IOPS}}</td><td class="barc">{{bar .RFrac "read" .ReadT}}{{bar .WFrac "write" .WriteT}}</td></tr>
-	{{end}}
-	</tbody>
-</table></div>
+<div class="card">
+	<div class="card-head"><h3>Random read and write</h3><p class="keys"><span><i></i>read</span><span><i class="write"></i>write</span></p></div>
+	<div class="scroll"><table class="spec">
+		<thead><tr><th>Block</th><th class="n">Read</th><th class="n">Write</th><th class="n">IOPS</th><th class="hide-s"></th></tr></thead>
+		<tbody>
+		{{range .Rows}}
+		<tr><td class="m">{{.BS}}</td><td class="n">{{.Read}}</td><td class="n">{{.Write}}</td><td class="n">{{.IOPS}}</td><td class="barc hide-s">{{bar .RFrac "read" .ReadT}}{{bar .WFrac "write" .WriteT}}</td></tr>
+		{{end}}
+		</tbody>
+	</table></div>
+</div>
 {{end}}
 
 {{define "net-chart"}}
-<div class="mapbox">{{.Map}}</div>
-<p class="keys"><i class="send"></i>upload<i></i>download</p>
+<div class="card map-card">
+	{{.Map}}
+</div>
 {{range .Groups}}
-{{with .Label}}<h3>{{.}}</h3>{{end}}
-<div class="tbl"><table>
-	<thead><tr><th>Location</th><th class="n">Upload</th><th class="n">Download</th><th class="n">Ping</th><th></th></tr></thead>
-	<tbody>
-	{{range .Rows}}
-	<tr{{if .Ours}} class="ours"{{end}}>
-		<td>{{.Location}}<span class="sub">{{.Provider}}</span></td>
-		<td class="n">{{if .SendFailed}}<span class="failed">failed</span>{{else}}{{.Send}}{{end}}</td>
-		<td class="n">{{if .RecvFailed}}<span class="failed">failed</span>{{else}}{{.Recv}}{{end}}</td>
-		<td class="n"><span class="ping-{{.PingClass}}">{{.Ping}}</span>{{with .Loss}}<span class="sub">{{.}}</span>{{end}}</td>
-		<td class="barc">{{if not .SendFailed}}{{bar .SFrac "send" .SendT}}{{end}}{{if not .RecvFailed}}{{bar .RFrac "recv" .RecvT}}{{end}}</td>
-	</tr>
-	{{end}}
-	</tbody>
-</table></div>
+<div class="card">
+	<div class="card-head"><h3>{{with .Label}}{{.}}{{else}}Transfer{{end}}</h3><p class="keys"><span><i class="send"></i>upload</span><span><i></i>download</span></p></div>
+	<div class="scroll"><table class="spec">
+		<thead><tr><th>Location</th><th class="n">Upload</th><th class="n">Download</th><th class="n">Ping</th><th class="hide-s"></th></tr></thead>
+		<tbody>
+		{{range .Rows}}
+		<tr>
+			<td>{{.Location}}{{if .Ours}}<span class="badge">Ours</span>{{end}}<span class="sub">{{.Provider}}</span></td>
+			<td class="n">{{if .SendFailed}}<span class="failed">failed</span>{{else}}{{.Send}}{{end}}</td>
+			<td class="n">{{if .RecvFailed}}<span class="failed">failed</span>{{else}}{{.Recv}}{{end}}</td>
+			<td class="n"><span class="ping-{{.PingClass}}">{{.Ping}}</span>{{with .Loss}}<span class="sub">{{.}}</span>{{end}}</td>
+			<td class="barc hide-s">{{if not .SendFailed}}{{bar .SFrac "send" .SendT}}{{end}}{{if not .RecvFailed}}{{bar .RFrac "recv" .RecvT}}{{end}}</td>
+		</tr>
+		{{end}}
+		</tbody>
+	</table></div>
+</div>
 {{end}}
 {{end}}

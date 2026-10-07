@@ -7,7 +7,7 @@
 <meta name="description" content="{{.Desc}}">
 <link rel="canonical" href="{{.URL}}">
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="nodebench">
+<meta property="og:site_name" content="nodebench by InstantNode">
 <meta property="og:title" content="{{.Title}}">
 <meta property="og:description" content="{{.Desc}}">
 <meta property="og:url" content="{{.URL}}">
@@ -16,19 +16,45 @@
 <meta property="og:image:height" content="{{.OGH}}">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#060606">
+<meta name="darkreader-lock">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="/static/inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/site.css?v={{.CSSVer}}">
 </head>
 <body>
-<div class="page{{if or (eq .Name "result") (eq .Name "leaderboard")}} wide{{end}}">
-<header class="top">
-	<a class="name" href="/">nodebench</a>
-	<nav aria-label="Main">
-		<a href="/docs"{{if eq .Name "docs"}} aria-current="page"{{end}}>docs</a>
-		<a href="/locations"{{if eq .Name "locations"}} aria-current="page"{{end}}>locations</a>
-		<a href="/leaderboard"{{if eq .Name "leaderboard"}} aria-current="page"{{end}}>leaderboard</a>
-		<a href="/self-host"{{if eq .Name "selfhost"}} aria-current="page"{{end}}>self-host</a>
-		<a href="https://github.com/instantnode/nodebench">source</a>
+<header class="hdr">
+	<div class="hdr-in">
+		<div class="hdr-brand">
+			<a class="hdr-logo" href="https://instantnode.eu" aria-label="InstantNode home"><img src="/static/instantnode.png" alt="InstantNode" width="87" height="22"></a>
+			<span class="hdr-sep" aria-hidden="true"></span>
+			<a class="hdr-product" href="/"><img src="/static/mark.svg" alt="" width="16" height="16">nodebench</a>
+		</div>
+		<nav class="hdr-nav" aria-label="Main">
+			<a href="/docs"{{if eq .Name "docs"}} aria-current="page"{{end}}>Docs</a>
+			<a href="/locations"{{if eq .Name "locations"}} aria-current="page"{{end}}>Locations</a>
+			<a href="/leaderboard"{{if eq .Name "leaderboard"}} aria-current="page"{{end}}>Leaderboard</a>
+			<a href="/self-host"{{if eq .Name "selfhost"}} aria-current="page"{{end}}>Self-host</a>
+		</nav>
+		<div class="hdr-cta">
+			<a class="btn btn-ghost btn-sm" href="https://github.com/instantnode/nodebench">GitHub</a>
+			<a class="btn btn-light btn-sm" href="https://instantnode.eu/dashboard">Create server</a>
+			<button class="burger" type="button" aria-label="Menu" aria-expanded="false" aria-controls="m-nav"><span></span><span></span><span></span></button>
+		</div>
+	</div>
+	<nav class="m-nav" id="m-nav" aria-label="Mobile">
+		<div class="m-group">nodebench</div>
+		<a href="/"{{if eq .Name "home"}} aria-current="page"{{end}}>Run a benchmark</a>
+		<a href="/docs"{{if eq .Name "docs"}} aria-current="page"{{end}}>Docs</a>
+		<a href="/locations"{{if eq .Name "locations"}} aria-current="page"{{end}}>Locations</a>
+		<a href="/leaderboard"{{if eq .Name "leaderboard"}} aria-current="page"{{end}}>Leaderboard</a>
+		<a href="/self-host"{{if eq .Name "selfhost"}} aria-current="page"{{end}}>Self-host</a>
+		<a href="/privacy"{{if eq .Name "privacy"}} aria-current="page"{{end}}>Privacy</a>
+		<a href="https://github.com/instantnode/nodebench">Source on GitHub</a>
+		<div class="m-group">InstantNode</div>
+		<a href="https://instantnode.eu">instantnode.eu</a>
+		<a href="https://instantnode.eu/kvm">KVM VPS</a>
+		<a href="https://instantnode.eu/datacenter">Datacenter &amp; Network</a>
+		<a href="https://instantnode.eu/contact">Contact</a>
 	</nav>
 </header>
 
@@ -36,25 +62,83 @@
 {{template "main" .}}
 </main>
 
-<footer>
-	nodebench is MIT licensed and run by <a href="https://instantnode.eu">InstantNode</a> from Eygelshoven, NL. <a href="/privacy">Privacy</a>.
+<footer class="ftr">
+	<div class="ftr-grid">
+		<div class="ftr-brand">
+			<img src="/static/instantnode.png" alt="InstantNode" width="87" height="22">
+			<p>nodebench is a free, open source benchmark for Linux servers, built and run by InstantNode in Eygelshoven, NL.</p>
+			<div class="ftr-social">
+				<a aria-label="GitHub" href="https://github.com/instantnode/nodebench" rel="noreferrer"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg></a>
+				<a aria-label="Discord" href="https://instantnode.eu/discord" rel="noreferrer"><svg viewBox="0 0 30.67 23.25" fill="currentColor" aria-hidden="true"><path d="M26 1.95A24.9 24.9 0 0 0 19.66 0c-.28.48-.59 1.13-.8 1.64a24.2 24.2 0 0 0-7.03 0A20.2 20.2 0 0 0 11.03 0a24.9 24.9 0 0 0-6.34 1.95C.67 7.87-.41 13.66.13 19.36a25.7 25.7 0 0 0 7.77 3.89c.62-.84 1.18-1.74 1.66-2.68a16.3 16.3 0 0 1-2.62-1.26c.22-.15.43-.32.64-.5 5.05 2.31 10.52 2.31 15.51 0 .22.18.42.35.64.5-.84.5-1.71.91-2.62 1.26.48.94 1.04 1.84 1.66 2.68a25.7 25.7 0 0 0 7.77-3.89c.66-6.6-1.06-12.34-4.53-17.4ZM10.25 15.84c-1.52 0-2.76-1.38-2.76-3.07s1.21-3.07 2.76-3.07c1.53 0 2.79 1.38 2.76 3.07 0 1.69-1.23 3.07-2.76 3.07Zm10.19 0c-1.52 0-2.76-1.38-2.76-3.07s1.21-3.07 2.76-3.07c1.54 0 2.79 1.38 2.76 3.07 0 1.69-1.21 3.07-2.76 3.07Z"/></svg></a>
+			</div>
+		</div>
+		<div class="ftr-col">
+			<h4>nodebench</h4>
+			<a href="/">Run a benchmark</a>
+			<a href="/docs">How it works</a>
+			<a href="/locations">Test locations</a>
+			<a href="/leaderboard">Leaderboard</a>
+			<a href="/self-host">Self-host</a>
+			<a href="/privacy">Privacy</a>
+		</div>
+		<div class="ftr-col">
+			<h4>InstantNode</h4>
+			<a href="https://instantnode.eu">Home</a>
+			<a href="https://instantnode.eu/kvm">KVM VPS</a>
+			<a href="https://instantnode.eu/vds">VDS</a>
+			<a href="https://instantnode.eu/hardware">Our Hardware</a>
+			<a href="https://instantnode.eu/datacenter">Datacenter &amp; Network</a>
+			<a href="https://instantnode.eu/contact">Contact</a>
+		</div>
+		<div class="ftr-col">
+			<h4>Legal</h4>
+			<a href="https://instantnode.eu/imprint">Imprint</a>
+			<a href="https://instantnode.eu/privacy">Privacy Policy</a>
+			<a href="https://instantnode.eu/terms">Terms of Service</a>
+			<a href="https://instantnode.eu/abuse">Report abuse</a>
+		</div>
+	</div>
+	<div class="ftr-badges">
+		<span class="ftr-badge"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.2l7.4 3v5.6c0 4.4-3 7.6-7.4 9-4.4-1.4-7.4-4.6-7.4-9V6.2l7.4-3Z"/><path d="M12 3.6v17"/></svg> No root needed</span>
+		<span class="ftr-badge"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M8.2 12.2l2.6 2.6 5-5.2"/></svg> Nothing left behind</span>
+		<span class="ftr-badge"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.6"/><path d="M3.4 12h17.2"/><path d="M12 3.4c2.3 2.4 2.3 14.8 0 17.2M12 3.4c-2.3 2.4-2.3 14.8 0 17.2"/></svg> No IP addresses stored</span>
+		<span class="ftr-badge"><svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13 2L4.5 13H11l-1 9 8.5-11H12l1-9Z"/></svg> Open source, MIT</span>
+	</div>
+	<div class="ftr-legal">
+		<div>
+			<p>&copy; 2026 InstantNode Einzelunternehmen. All rights reserved.</p>
+			<p>Results are self-reported by the people who run the script.</p>
+		</div>
+		<nav aria-label="Legal">
+			<a href="https://instantnode.eu/imprint">Imprint</a>
+			<a href="https://instantnode.eu/privacy">Privacy Policy</a>
+			<a href="/privacy">nodebench privacy</a>
+		</nav>
+	</div>
 </footer>
-</div>
+
 <script src="/static/map.js?v={{.CSSVer}}" defer></script>
 <script>
-document.querySelectorAll("[data-copy]").forEach(function (b) {
-	b.addEventListener("click", function (e) {
-		e.preventDefault();
-		var src = document.getElementById(b.dataset.copy);
-		var text = src ? src.textContent : b.dataset.copy;
-		var label = b.textContent;
-		navigator.clipboard.writeText(text).then(function () {
-			b.textContent = "copied";
-			b.classList.add("done");
-			setTimeout(function () { b.textContent = label; b.classList.remove("done"); }, 1500);
+(function () {
+	var burger = document.querySelector(".burger"), nav = document.getElementById("m-nav");
+	burger.addEventListener("click", function () {
+		var open = nav.classList.toggle("open");
+		burger.setAttribute("aria-expanded", open ? "true" : "false");
+	});
+	document.querySelectorAll("[data-copy]").forEach(function (b) {
+		b.addEventListener("click", function (e) {
+			e.preventDefault();
+			var src = document.getElementById(b.dataset.copy);
+			var text = src ? src.textContent : b.dataset.copy;
+			var label = b.textContent;
+			navigator.clipboard.writeText(text).then(function () {
+				b.textContent = "Copied";
+				b.classList.add("done");
+				setTimeout(function () { b.textContent = label; b.classList.remove("done"); }, 1500);
+			});
 		});
 	});
-});
+})();
 </script>
 </body>
 </html>{{end}}

@@ -2,3 +2,4 @@ server/data/
 server/server
 server/nodebench-server
 *.fio
+.shots/
