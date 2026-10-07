@@ -212,7 +212,7 @@ func (r *Result) validate() error {
 	}
 
 	if n := r.Net; n != nil {
-		if len(n.Tests) == 0 || len(n.Tests) > 16 {
+		if len(n.Tests) == 0 || len(n.Tests) > 40 {
 			return errors.New("net: bad number of tests")
 		}
 		if err := cleanString(&n.Tool, 16); err != nil {
