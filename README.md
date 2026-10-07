@@ -37,10 +37,21 @@ curl -sL https://bench.instantnode.eu | bash -s -- -n --no-share
 | `-d DIR` | directory for the disk test file (default: current dir) |
 | `-S SIZE` | size of the disk test file, e.g. `512M` (default: `2G`) |
 | `-t N` | threads for the multi-core cpu test (default: all cores) |
+| `-L [NAME]` | put the result on the [leaderboard](https://bench.instantnode.eu/leaderboard), optionally under NAME |
 | `--no-share` | don't upload the result |
 | `--json` | only print the result as json, the share link goes to stderr |
 
 The test durations can be shortened with `NODEBENCH_FIO_TIME`, `NODEBENCH_IPERF_TIME` and `NODEBENCH_CPU_TIME` (seconds), which is handy on slow links or when you just want a quick look.
+
+## Leaderboard
+
+Results only go on the public leaderboard if you pass `-L`, optionally with a name (up to 32 characters, no links):
+
+```
+curl -sL https://bench.instantnode.eu | bash -s -- -L "fra-edge-01"
+```
+
+Without a name the provider name is shown. Only the best run per name, CPU model and network is listed, and results with numbers no real machine produces are kept as links but never ranked.
 
 ## Sharing
 
@@ -50,7 +61,7 @@ At the end the result is posted to the share server and you get a link like `htt
 
 <p align="center"><img src="assets/card.png" alt="preview image" width="600"></p>
 
-What gets uploaded is exactly what `--json` prints. Your IP address is not part of it and the server doesn't log it. Use `--no-share` if you don't want a link at all. Results are public to anyone who has the link.
+What gets uploaded is exactly what `--json` prints. Your IP address is not part of it and the server doesn't log it. The provider, ASN and country are shown, the city is not: older versions of the script sent it, the server drops it on upload and when serving old results. Use `--no-share` if you don't want a link at all. Results are public to anyone who has the link.
 
 ## Running your own share server
 
@@ -77,7 +88,10 @@ docker run -d -p 8080:8080 -v nodebench:/data -e NODEBENCH_BASE=https://bench.ex
 | `-script` | `NODEBENCH_SCRIPT` | `../nodebench.sh` | script served to curl and wget on `/` |
 | `-proxy` | `NODEBENCH_PROXY` | off | trust `X-Forwarded-For`, only behind a reverse proxy |
 | `-rate` | | `20` | uploads per IP per hour |
-| `-example` | `NODEBENCH_EXAMPLE` | | result id the landing page links to as an example |
+| `-example` | `NODEBENCH_EXAMPLE` | | result shown with its charts on the home page |
+| | `NODEBENCH_ADMIN_TOKEN` | | enables `POST /api/results/<id>/hide` to take a result off the leaderboard |
+
+The leaderboard is kept in memory and rebuilt from the JSON files on start. Hidden results are listed in `hidden.txt` in the data directory.
 
 `/` serves the script itself when the client is curl or wget, everyone else gets a small landing page. A systemd unit is in `deploy/`. Point the script at your server with `NODEBENCH_URL=https://bench.example.com`.
 
