@@ -170,3 +170,24 @@ func ids(es []*entry) []string {
 	}
 	return out
 }
+
+// With DynamicUser= the data dir is a symlink into /var/lib/private.
+func TestBoardLoadSymlinkedDir(t *testing.T) {
+	real := t.TempDir()
+	link := filepath.Join(t.TempDir(), "nodebench")
+	if err := os.Symlink(real, link); err != nil {
+		t.Fatal(err)
+	}
+	s := &Store{dir: link}
+	r := boardResult(t, "", "symlinked", 9e9, nil)
+	if err := s.Save(r); err != nil {
+		t.Fatal(err)
+	}
+	b := newBoard(link)
+	if err := b.load(s); err != nil {
+		t.Fatal(err)
+	}
+	if b.size() != 1 {
+		t.Fatalf("loaded %d entries through a symlinked dir, want 1", b.size())
+	}
+}

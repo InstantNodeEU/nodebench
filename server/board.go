@@ -114,7 +114,13 @@ func (b *board) load(s *Store) error {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	return filepath.WalkDir(s.dir, func(p string, d fs.DirEntry, err error) error {
+	// systemd's DynamicUser makes the data dir a symlink into /var/lib/private,
+	// and WalkDir doesn't follow a symlinked root
+	root, err := filepath.EvalSymlinks(s.dir)
+	if err != nil {
+		root = s.dir
+	}
+	return filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
 		if err != nil || d.IsDir() || !strings.HasSuffix(p, ".json") {
 			return nil
 		}
