@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 ExecStart=/usr/local/bin/nodebench-server
 Environment=NODEBENCH_LISTEN=127.0.0.1:8080
-Environment=NODEBENCH_BASE=https://bench.example.com
+Environment=NODEBENCH_BASE=https://bench.instantnode.eu
 Environment=NODEBENCH_DATA=/var/lib/nodebench
 Environment=NODEBENCH_SCRIPT=/usr/local/share/nodebench/nodebench.sh
 Environment=NODEBENCH_PROXY=1
