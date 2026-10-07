@@ -10,6 +10,8 @@ Environment=NODEBENCH_BASE=https://bench.instantnode.eu
 Environment=NODEBENCH_DATA=/var/lib/nodebench
 Environment=NODEBENCH_SCRIPT=/usr/local/share/nodebench/nodebench.sh
 Environment=NODEBENCH_PROXY=1
+# Environment=NODEBENCH_EXAMPLE=<result id>
+# EnvironmentFile=-/etc/nodebench/env  (NODEBENCH_ADMIN_TOKEN=...)
 DynamicUser=yes
 StateDirectory=nodebench
 ProtectSystem=strict

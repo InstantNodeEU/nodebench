@@ -1,0 +1,75 @@
+{{define "cpu-chart"}}
+<div class="chart cpu-chart">
+	{{range .Rows}}
+	<div class="cgroup">
+		<div class="cgroup-h"><span class="cname">{{.Name}}</span>{{with .Scale}}<span class="scale" title="all threads compared to one">{{.}} <small>multi-core scaling</small></span>{{end}}</div>
+		<div class="hrow"><span class="lbl">1 thread</span>{{bar .SFrac "single" .SingleT}}<span class="val">{{.Single}}</span></div>
+		<div class="hrow"><span class="lbl">{{$.Threads}} threads</span>{{bar .MFrac "multi" .MultT}}<span class="val strong">{{.Multi}}</span></div>
+	</div>
+	{{end}}
+</div>
+{{end}}
+
+{{define "disk-chart"}}
+<div class="chart disk-chart">
+	<div class="legend"><span class="sw read"></span>Read<span class="sw write"></span>Write<span class="legend-r">IOPS, read+write</span></div>
+	{{range .Rows}}
+	<div class="dgroup">
+		<span class="bs">{{.BS}}</span>
+		<div class="dbars">
+			<div class="hrow">{{bar .RFrac "read" .ReadT}}<span class="val">{{.Read}}</span></div>
+			<div class="hrow">{{bar .WFrac "write" .WriteT}}<span class="val">{{.Write}}</span></div>
+		</div>
+		<span class="iops">{{.IOPS}}</span>
+	</div>
+	{{end}}
+</div>
+{{end}}
+
+{{define "net-chart"}}
+<div class="chart net-chart">
+	<div class="map-wrap">{{.Map}}
+		<div class="map-key">{{if .Origin}}<span class="origin">this server</span>{{end}}<span class="near">under 50 ms</span><span class="mid">50 to 150 ms</span><span class="far">over 150 ms</span></div>
+	</div>
+	<div class="legend"><span class="sw send"></span>Upload<span class="sw recv"></span>Download<span class="legend-r">Ping</span></div>
+	{{range .Groups}}
+	{{with .Label}}<div class="ngroup">{{.}}</div>{{end}}
+	{{range .Rows}}
+	<div class="nrow{{if .Ours}} ours{{end}}">
+		<div class="nloc">
+			<span class="place">{{.Location}}</span>
+			<span class="prov">{{.Provider}}{{if .Ours}} <em>our network</em>{{end}}</span>
+		</div>
+		<div class="nbars">
+			<div class="hrow">{{if .SendFailed}}<span class="failed">{{template "i-x"}}upload failed</span>{{else}}{{bar .SFrac "send" .SendT}}<span class="val">{{.Send}}</span>{{end}}</div>
+			<div class="hrow">{{if .RecvFailed}}<span class="failed">{{template "i-x"}}download failed</span>{{else}}{{bar .RFrac "recv" .RecvT}}<span class="val">{{.Recv}}</span>{{end}}</div>
+		</div>
+		<span class="ping {{.PingClass}}">{{.Ping}}</span>
+	</div>
+	{{end}}
+	{{end}}
+</div>
+{{end}}
+
+{{define "overview"}}
+<div class="tiles">
+	<div class="tile">
+		<span class="tile-ic">{{template "i-cpu"}}</span>
+		<span class="k">CPU sha256, all threads</span>
+		{{if .R.CPU}}<div class="v">{{.CPUMain}}</div><div class="s">{{.R.CPU.Threads}} threads{{with .CPUChart}}{{with index .Rows 0}}{{with .Scale}}, {{.}} over one{{end}}{{end}}{{end}}</div>
+		{{else}}<div class="v na">skipped</div>{{end}}
+	</div>
+	<div class="tile">
+		<span class="tile-ic">{{template "i-disk"}}</span>
+		<span class="k">Disk 4k random</span>
+		{{if .Disk4k}}<div class="v">{{.Disk4k}}</div><div class="s">{{.Disk4kIOPS}} IOPS read+write</div>
+		{{else}}<div class="v na">skipped</div>{{end}}
+	</div>
+	<div class="tile">
+		<span class="tile-ic">{{template "i-net"}}</span>
+		<span class="k">Best download</span>
+		{{if .BestNet}}<div class="v">{{.BestNet}}</div><div class="s">{{.BestNetFrom}}</div>
+		{{else}}<div class="v na">skipped</div>{{end}}
+	</div>
+</div>
+{{end}}

@@ -2,14 +2,16 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"strings"
 )
 
 type resultView struct {
 	R   *Result
-	CSS template.CSS
 	URL string
+
+	CPUChart  *cpuChart
+	DiskChart *diskChart
+	NetChart  *netChart
 
 	CPU, Specs, Summary, Date, OneLiner    string
 	MHz, Virt, RAM, Swap, DiskSize, Uptime string
@@ -22,18 +24,20 @@ type resultView struct {
 func (s *server) view(r *Result) resultView {
 	sys := r.System
 	v := resultView{
-		R:        r,
-		CSS:      s.css,
-		URL:      *baseURL + "/r/" + r.ID,
-		CPU:      shortCPU(sys.CPU),
-		Date:     r.Created.Format("2006-01-02 15:04 UTC"),
-		OneLiner: s.oneLiner(),
-		MHz:      fmtMHz(sys.MHz),
-		Virt:     virtName(sys.Virt),
-		RAM:      fmtKiB(sys.RAM),
-		Swap:     fmtKiB(sys.Swap),
-		DiskSize: fmtKiB(sys.DiskKiB),
-		Uptime:   fmtUptime(sys.Uptime),
+		R:         r,
+		CPUChart:  newCPUChart(r.CPU),
+		DiskChart: newDiskChart(r.Disk),
+		NetChart:  newNetChart(r),
+		URL:       *baseURL + "/r/" + r.ID,
+		CPU:       shortCPU(sys.CPU),
+		Date:      r.Created.Format("2006-01-02 15:04 UTC"),
+		OneLiner:  s.oneLiner(),
+		MHz:       fmtMHz(sys.MHz),
+		Virt:      virtName(sys.Virt),
+		RAM:       fmtKiB(sys.RAM),
+		Swap:      fmtKiB(sys.Swap),
+		DiskSize:  fmtKiB(sys.DiskKiB),
+		Uptime:    fmtUptime(sys.Uptime),
 	}
 	v.Specs = specLine(r)
 

@@ -1,107 +1,41 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{.CPU}} - nodebench</title>
-<meta name="description" content="{{.Summary}}">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="nodebench">
-<meta property="og:title" content="{{.CPU}} - nodebench">
-<meta property="og:description" content="{{.Summary}}">
-<meta property="og:url" content="{{.URL}}">
-<meta property="og:image" content="{{.URL}}.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#060606">
-<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="/static/satoshi.woff2" as="font" type="font/woff2" crossorigin>
-<style>{{.CSS}}</style>
-</head>
-<body>
-<header class="hdr">
-	<div class="frame">
-		<a class="brand" href="/"><img src="/static/mark.svg" alt="" width="22" height="21">nodebench</a>
-		<nav class="nav">
-			<a class="hide-sm" href="{{.URL}}.json">Raw JSON</a>
-			<a class="btn btn-ghost btn-sm" href="/">Run your own</a>
-		</nav>
-	</div>
-</header>
-
-<main class="frame">
+{{define "main"}}{{with .Data}}
+<div class="frame">
 	<section class="res-head">
 		<span class="k">Result <span class="id">{{.R.ID}}</span> &middot; {{.Date}}</span>
 		<h1>{{.CPU}}</h1>
 		<p class="specs">{{.Specs}}</p>
 		<div class="acts">
-			<button class="btn btn-ghost btn-sm" type="button" id="share" data-url="{{.URL}}">Copy link</button>
-			<a class="btn btn-ghost btn-sm" href="{{.URL}}.png">Preview image</a>
+			<button class="btn btn-ghost btn-sm" type="button" data-copy="{{.URL}}" data-done="Link copied">{{template "i-link"}}Copy link</button>
+			<a class="btn btn-ghost btn-sm" href="{{.URL}}.png">{{template "i-bars"}}Preview image</a>
+			<a class="btn btn-ghost btn-sm" href="{{.URL}}.json">{{template "i-code"}}Raw JSON</a>
 		</div>
 	</section>
 
-	<section class="tiles">
-		<div class="tile">
-			<span class="k">CPU sha256</span>
-			{{if .R.CPU}}<div class="v">{{.CPUMain}}</div><div class="s">{{.R.CPU.Threads}} threads</div>
-			{{else}}<div class="v na">skipped</div>{{end}}
-		</div>
-		<div class="tile">
-			<span class="k">Disk 4k random</span>
-			{{if .Disk4k}}<div class="v">{{.Disk4k}}</div><div class="s">{{.Disk4kIOPS}} IOPS read+write</div>
-			{{else}}<div class="v na">skipped</div>{{end}}
-		</div>
-		<div class="tile">
-			<span class="k">Best download</span>
-			{{if .BestNet}}<div class="v">{{.BestNet}}</div><div class="s">{{.BestNetFrom}}</div>
-			{{else}}<div class="v na">skipped</div>{{end}}
-		</div>
-	</section>
+	{{template "overview" .}}
 
-	{{with .R.CPU}}
+	{{with .CPUChart}}
 	<section class="block">
-		<div class="block-h"><h2>CPU</h2><span>openssl speed, 16 KiB blocks</span></div>
-		<div class="sheet"><table>
-			<thead><tr><th>Test</th><th>1 thread</th><th>{{.Threads}} threads</th></tr></thead>
-			<tbody>
-			<tr><td>sha256</td><td>{{bytes .SHA256}}</td><td>{{bytes .SHA256N}}</td></tr>
-			<tr><td>aes-256-gcm</td><td>{{bytes .AES}}</td><td>{{bytes .AESN}}</td></tr>
-			</tbody>
-		</table></div>
+		<div class="block-h"><span class="bh-ic">{{template "i-cpu"}}</span><h2>CPU</h2><span>openssl speed, 16 KiB blocks</span></div>
+		<div class="panel">{{template "cpu-chart" .}}</div>
 	</section>
 	{{end}}
 
-	{{with .R.Disk}}
+	{{with .DiskChart}}
 	<section class="block">
-		<div class="block-h"><h2>Disk</h2><span>{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file</span></div>
-		<div class="sheet"><table>
-			<thead><tr><th>Block size</th><th>Read</th><th>Write</th><th>Total</th><th>IOPS</th></tr></thead>
-			<tbody>
-			{{range .Tests}}
-			<tr><td>{{.BS}}</td><td>{{kbs .ReadKBs}}</td><td>{{kbs .WriteKBs}}</td><td>{{kbs (add .ReadKBs .WriteKBs)}}</td><td>{{iops (add .ReadIOPS .WriteIOPS)}}</td></tr>
-			{{end}}
-			</tbody>
-		</table></div>
+		<div class="block-h"><span class="bh-ic">{{template "i-disk"}}</span><h2>Disk</h2><span>{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file</span></div>
+		<div class="panel">{{template "disk-chart" .}}</div>
 	</section>
 	{{end}}
 
-	{{with .R.Net}}
+	{{with .NetChart}}
 	<section class="block">
-		<div class="block-h"><h2>Network</h2><span>{{.Tool}}</span></div>
-		<div class="sheet"><table>
-			<thead><tr><th>Location</th><th>Send</th><th>Receive</th><th>Ping</th></tr></thead>
-			<tbody>
-			{{range .Tests}}
-			<tr><td>{{.Location}}<span class="p">{{.Provider}}{{if eq .Proto 6}}, IPv6{{end}}</span></td><td>{{mbps .Send}}</td><td>{{mbps .Recv}}</td><td>{{ping .Ping}}</td></tr>
-			{{end}}
-			</tbody>
-		</table></div>
+		<div class="block-h"><span class="bh-ic">{{template "i-globe"}}</span><h2>Network</h2><span>{{.Tool}}, both directions</span></div>
+		<div class="panel">{{template "net-chart" .}}</div>
 	</section>
 	{{end}}
 
 	<section class="block">
-		<div class="block-h"><h2>System</h2></div>
+		<div class="block-h"><span class="bh-ic">{{template "i-server"}}</span><h2>System</h2></div>
 		<dl class="sys">
 			<div><dt>Processor</dt><dd>{{.R.System.CPU}}</dd></div>
 			<div><dt>Cores</dt><dd>{{.R.System.Cores}}{{with .MHz}} @ {{.}}{{end}}</dd></div>
@@ -114,45 +48,17 @@
 			<div><dt>Uptime</dt><dd>{{.Uptime}}</dd></div>
 			<div><dt>Network</dt><dd>IPv4 {{yesno .R.IPv4}}, IPv6 {{yesno .R.IPv6}}</dd></div>
 			{{with .R.Location}}<div><dt>Provider</dt><dd>{{.Org}}{{if .ASN}} ({{.ASN}}){{end}}{{if .Country}}, {{.Country}}{{end}}</dd></div>{{end}}
-			<div><dt>nodebench</dt><dd>{{.R.Version}}</dd></div>
+			<div><dt>nodebench</dt><dd>{{.R.Version}}{{if .R.Leaderboard}}, on the <a href="/leaderboard">leaderboard</a>{{end}}</dd></div>
 		</dl>
 	</section>
 
 	<section class="again">
+		<span class="again-ic">{{template "i-term"}}</span>
 		<h2>Benchmark your own server</h2>
 		<div class="cmd">
-			<code id="cmd">{{.OneLiner}}</code>
+			<code id="cmd">{{$.OneLiner}}</code>
 			<button class="copy" type="button" data-copy="cmd">Copy</button>
 		</div>
 	</section>
-</main>
-
-<footer class="ftr">
-	<div class="frame">
-		<a class="by" href="https://instantnode.eu"><img src="/static/instantnode.png" alt="InstantNode" width="85" height="22">nodebench by InstantNode</a>
-		<nav>
-			<a href="/">nodebench</a>
-			<a href="https://github.com/instantnode/nodebench">Source</a>
-			<a href="{{.URL}}.json">Raw JSON</a>
-		</nav>
-	</div>
-</footer>
-
-<script>
-function flash(b, label, done) {
-	b.textContent = label;
-	b.classList.add("done");
-	setTimeout(function () { b.textContent = done; b.classList.remove("done"); }, 1600);
-}
-document.querySelectorAll("[data-copy]").forEach(function (b) {
-	b.addEventListener("click", function () {
-		navigator.clipboard.writeText(document.getElementById(b.dataset.copy).textContent).then(function () { flash(b, "Copied", "Copy"); });
-	});
-});
-var s = document.getElementById("share");
-s.addEventListener("click", function () {
-	navigator.clipboard.writeText(s.dataset.url).then(function () { flash(s, "Link copied", "Copy link"); });
-});
-</script>
-</body>
-</html>
+</div>
+{{end}}{{end}}

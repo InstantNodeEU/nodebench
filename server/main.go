@@ -18,6 +18,9 @@ import (
 //go:embed templates
 var templateFS embed.FS
 
+//go:embed static/site.css
+var siteCSS []byte
+
 //go:embed fonts/*.ttf
 var fontFS embed.FS
 
@@ -31,7 +34,8 @@ var (
 	script  = flag.String("script", env("NODEBENCH_SCRIPT", "../nodebench.sh"), "path to nodebench.sh, served to curl and wget")
 	proxied = flag.Bool("proxy", env("NODEBENCH_PROXY", "") != "", "trust X-Forwarded-For (only behind a reverse proxy)")
 	perHour = flag.Int("rate", 20, "max uploads per ip per hour")
-	example = flag.String("example", env("NODEBENCH_EXAMPLE", ""), "result id linked from the landing page")
+	example = flag.String("example", env("NODEBENCH_EXAMPLE", ""), "result id shown as the example on the landing page")
+	admin   = flag.String("admin-token", "", "bearer token for moderation, also read from NODEBENCH_ADMIN_TOKEN")
 )
 
 func env(key, def string) string {
@@ -43,9 +47,10 @@ func env(key, def string) string {
 
 type server struct {
 	store   *Store
-	css     template.CSS
-	result  *template.Template
-	index   *template.Template
+	board   *board
+	pages   map[string]*template.Template
+	cssVer  string
+	world   []byte
 	limiter *limiter
 }
 
@@ -57,37 +62,36 @@ func main() {
 		log.Fatal(err)
 	}
 
-	css, err := templateFS.ReadFile("templates/style.css")
-	if err != nil {
-		log.Fatal(err)
-	}
-	funcs := template.FuncMap{
-		"bytes": fmtBytes,
-		"kbs":   fmtKBs,
-		"iops":  fmtIOPS,
-		"mbps":  fmtMbps,
-		"ping":  fmtPing,
-		"add":   func(a, b float64) float64 { return a + b },
-		"yesno": func(b bool) string {
-			if b {
-				return "yes"
-			}
-			return "no"
-		},
-	}
 	s := &server{
 		store:   &Store{dir: *dataDir},
-		css:     template.CSS(css),
-		result:  template.Must(template.New("result.html").Funcs(funcs).ParseFS(templateFS, "templates/result.html")),
-		index:   template.Must(template.New("index.html").ParseFS(templateFS, "templates/index.html")),
+		board:   newBoard(*dataDir),
+		world:   worldSVG(),
 		limiter: newLimiter(*perHour, time.Hour),
 	}
+	s.loadTemplates()
+	start := time.Now()
+	if err := s.board.load(s.store); err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("leaderboard: %d entries loaded in %s", s.board.size(), time.Since(start).Round(time.Millisecond))
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", s.handleIndex)
+	for name, path := range pagePath {
+		if name != "home" {
+			mux.HandleFunc("GET "+path, s.handlePage(name))
+		}
+	}
+	mux.Handle("GET /how", http.RedirectHandler("/docs", http.StatusMovedPermanently))
 	mux.HandleFunc("POST /api/results", s.handleUpload)
+	mux.HandleFunc("POST /api/results/{id}/hide", s.handleHide)
 	mux.HandleFunc("GET /r/{id}", s.handleResult)
 	mux.Handle("GET /fonts/", longCache(http.FileServerFS(fontFS)))
+	mux.HandleFunc("GET /static/world.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=2592000")
+		w.Write(s.world)
+	})
 	mux.Handle("GET /static/", longCache(http.FileServerFS(staticFS)))
 	mux.Handle("GET /favicon.ico", http.RedirectHandler("/static/favicon.svg", http.StatusMovedPermanently))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok\n") })
@@ -121,17 +125,7 @@ func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		io.Copy(w, f)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	var ex string
-	if *example != "" {
-		if _, err := s.store.Load(*example); err == nil {
-			ex = *example
-		}
-	}
-	err := s.index.Execute(w, map[string]any{"CSS": s.css, "OneLiner": s.oneLiner(), "Base": *baseURL, "Example": ex})
-	if err != nil {
-		log.Printf("index: %v", err)
-	}
+	s.handlePage("home")(w, r)
 }
 
 func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
@@ -154,6 +148,7 @@ func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, http.StatusInternalServerError, "could not save result")
 		return
 	}
+	s.board.add(res)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(map[string]string{
@@ -181,9 +176,11 @@ func (s *server) handleResult(w http.ResponseWriter, r *http.Request) {
 	switch ext {
 	case "":
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		if err := s.result.Execute(w, s.view(res)); err != nil {
-			log.Printf("render %s: %v", id, err)
-		}
+		v := s.view(res)
+		s.render(w, "result", page{
+			Title: v.CPU + " - nodebench", Desc: v.Summary, URL: v.URL,
+			OG: v.URL + ".png", OGW: 1200, OGH: 630, Data: v,
+		})
 	case "json":
 		w.Header().Set("Content-Type", "application/json")
 		w.Header().Set("Access-Control-Allow-Origin", "*")

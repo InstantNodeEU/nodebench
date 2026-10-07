@@ -1,0 +1,128 @@
+{{define "main"}}
+<div class="frame">
+	<section class="hero">
+		<h1 class="d1">Benchmark any server<br>in <span class="grad">one line</span>.</h1>
+		<p class="lede">CPU, disk and network for any Linux box. No root, nothing left installed, and a result link that unfurls nicely in Discord, forums and tickets.</p>
+		<div class="cmd">
+			<code id="cmd">{{.OneLiner}}</code>
+			<button class="copy" type="button" data-copy="cmd">Copy</button>
+		</div>
+		<div class="facts"><span>{{template "i-term"}}bash and curl, no root</span><span>{{template "i-globe"}}{{.Data.Sites}} network locations</span><span>{{template "i-clock"}}done in a few minutes</span><span>{{template "i-code"}}MIT licensed</span></div>
+	</section>
+
+	<div class="shot term"><img src="/static/terminal.png" alt="nodebench output in a terminal: system info, cpu, disk and network tables, then the share link" width="1284" height="1786"></div>
+
+	<section class="sec">
+		<div class="sec-head">
+			<span class="k">What it measures</span>
+			<h2 class="d2">Numbers you can actually compare.</h2>
+			<p class="lede">The same tools and parameters people already post on forums, so a result from your box lines up with everybody else's.</p>
+		</div>
+		<div class="cells">
+			<div class="cell">
+				<span class="cell-ic">{{template "i-cpu"}}</span>
+				<h3>CPU</h3>
+				<p>openssl sha256 and aes-256-gcm, on one thread and on all of them, so you see both single-core speed and how well the cores scale.</p>
+			</div>
+			<div class="cell">
+				<span class="cell-ic">{{template "i-disk"}}</span>
+				<h3>Disk</h3>
+				<p>fio random read/write at 4k, 64k, 512k and 1m with the same settings as yabs. Throughput and IOPS for each block size.</p>
+			</div>
+			<div class="cell">
+				<span class="cell-ic">{{template "i-net"}}</span>
+				<h3>Network</h3>
+				<p>iperf3 upload and download plus ping against {{.Data.Sites}} public servers on four continents, over IPv4 and IPv6.</p>
+			</div>
+		</div>
+		<p class="more-link"><a href="/docs">Methodology and all options {{template "i-arrow"}}</a></p>
+	</section>
+
+	{{with .Data.Example}}
+	<section class="sec">
+		<div class="sec-head">
+			<span class="k">A real result</span>
+			<h2 class="d2">Every run gets a page like this.</h2>
+			<p class="lede">The script prints a short link at the end. This is a real run, hover the bars for the exact numbers.</p>
+		</div>
+		<div class="example">
+			<div class="example-bar">
+				<span class="dots"><i></i><i></i><i></i></span>
+				<span class="addr">{{.URL}}</span>
+			</div>
+			<div class="example-body">
+				<div class="ex-head"><h3>{{.CPU}}</h3><p>{{.Specs}}</p></div>
+				{{template "overview" .}}
+				<div class="ex-grid">
+					{{with .CPUChart}}<div class="panel"><div class="panel-h">{{template "i-cpu"}}CPU</div>{{template "cpu-chart" .}}</div>{{end}}
+					{{with .DiskChart}}<div class="panel"><div class="panel-h">{{template "i-disk"}}Disk</div>{{template "disk-chart" .}}</div>{{end}}
+				</div>
+			</div>
+		</div>
+		<p class="more-link"><a href="/r/{{.R.ID}}">Open the full result {{template "i-arrow"}}</a></p>
+	</section>
+	{{end}}
+
+	<section class="sec">
+		<div class="sec-head">
+			<span class="k">How it works</span>
+			<h2 class="d2">Runs anywhere, leaves nothing.</h2>
+		</div>
+		<ol class="steps">
+			<li class="cell"><span class="step-n">1</span><span class="cell-ic">{{template "i-term"}}</span><h3>Paste the line</h3><p>Plain bash and curl, as a normal user. No package manager, no root, no agent.</p></li>
+			<li class="cell"><span class="step-n">2</span><span class="cell-ic">{{template "i-clock"}}</span><h3>Wait a few minutes</h3><p>Missing tools are fetched as static builds into a temp directory, checked against their sha256 sums and deleted at the end.</p></li>
+			<li class="cell"><span class="step-n">3</span><span class="cell-ic">{{template "i-link"}}</span><h3>Read it or share it</h3><p>Plain tables in your terminal, plus a link with charts and a preview image. Or keep it local with <code>--no-share</code>.</p></li>
+		</ol>
+	</section>
+
+	<section class="sec">
+		<div class="split">
+			<div class="txt">
+				<span class="k">Test locations</span>
+				<h2 class="d2">Four continents, {{.Data.Sites}} servers.</h2>
+				<p class="lede">Every run tests against the same public iperf3 servers, so the network numbers mean the same thing from one result to the next.</p>
+				<ul class="site-list">
+					<li class="ours"><span class="dot"></span>Eygelshoven, NL <em>InstantNode</em></li>
+					<li><span class="dot"></span>London, Amsterdam, Frankfurt</li>
+					<li><span class="dot"></span>New York, Los Angeles</li>
+					<li><span class="dot"></span>Singapore, Sao Paulo</li>
+				</ul>
+				<div><a class="btn btn-ghost" href="/locations">All locations {{template "i-arrow"}}</a></div>
+			</div>
+			<div class="map-card">{{.Data.Map}}</div>
+		</div>
+	</section>
+
+	<section class="sec">
+		<div class="cells">
+			<a class="cell link-cell" href="/leaderboard">
+				<span class="cell-ic">{{template "i-trophy"}}</span>
+				<h3>Leaderboard</h3>
+				<p>Add <code>-L</code> and your result is ranked against everyone else who opted in.</p>
+				<span class="go">See the rankings {{template "i-arrow"}}</span>
+			</a>
+			<a class="cell link-cell" href="/privacy">
+				<span class="cell-ic">{{template "i-lock"}}</span>
+				<h3>Your IP stays with you</h3>
+				<p>No IP address is uploaded or logged. Only hardware, results, provider and country.</p>
+				<span class="go">What gets uploaded {{template "i-arrow"}}</span>
+			</a>
+			<a class="cell link-cell" href="/self-host">
+				<span class="cell-ic">{{template "i-server"}}</span>
+				<h3>Self-host it</h3>
+				<p>One Go binary and a folder of JSON files. Point the script at it with one variable.</p>
+				<span class="go">Run your own {{template "i-arrow"}}</span>
+			</a>
+		</div>
+	</section>
+
+	<section class="cta">
+		<h2 class="d2">Try it on your next box.</h2>
+		<div class="cmd">
+			<code id="cmd2">{{.OneLiner}}</code>
+			<button class="copy" type="button" data-copy="cmd2">Copy</button>
+		</div>
+		<a class="btn btn-light" href="https://github.com/instantnode/nodebench">Star on GitHub</a>
+	</section>
+</div>
+{{end}}
