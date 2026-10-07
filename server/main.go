@@ -23,6 +23,11 @@ var templateFS embed.FS
 //go:embed static/site.css
 var siteCSS []byte
 
+// a real run of the script, shown on the home page
+//
+//go:embed terminal.ansi
+var terminalCapture string
+
 //go:embed fonts/*.ttf
 var fontFS embed.FS
 

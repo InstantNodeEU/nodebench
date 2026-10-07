@@ -58,7 +58,7 @@ func (s *server) loadTemplates() {
 		},
 	}
 	base := template.Must(template.New("base").Funcs(funcs).ParseFS(templateFS,
-		"templates/layout.html", "templates/icons.html", "templates/charts.html"))
+		"templates/layout.html", "templates/charts.html"))
 	s.pages = map[string]*template.Template{}
 	for name := range pageMeta {
 		t := template.Must(base.Clone())
@@ -97,7 +97,7 @@ func (s *server) handlePage(name string) http.HandlerFunc {
 		case "docs":
 			p.Data = map[string]any{"Sites": standardSites(), "Total": len(sites)}
 		case "locations":
-			p.Data = map[string]any{"Sites": sites, "Map": netMap(nil), "Regions": regionNames, "Standard": standardSites(), "Total": len(sites)}
+			p.Data = map[string]any{"Sites": sites, "Map": netMap(nil), "Regions": regionNames, "Standard": standardSites(), "Total": len(sites), "Extra": len(sites) - standardSites()}
 		case "leaderboard":
 			p.Data = s.boardData(r)
 		}
@@ -105,8 +105,22 @@ func (s *server) handlePage(name string) http.HandlerFunc {
 	}
 }
 
+type change struct{ Date, Text string }
+
+// changelog is short on purpose, the git log has the details.
+var changelog = []change{
+	{"2026-10-07", "1.1.0: steal time, disk type, packet loss, -q quick runs, -l regions, -x for 17 locations"},
+	{"2026-10-07", "Opt-in leaderboard with -L"},
+	{"2026-10-07", "The city is no longer stored or shown, also for older results"},
+	{"2026-10-07", "InstantNode Eygelshoven added as the first test location"},
+}
+
 func (s *server) homeData() map[string]any {
-	d := map[string]any{"Sites": standardSites(), "Total": len(sites), "Map": netMap(nil)}
+	d := map[string]any{
+		"Sites": standardSites(), "Total": len(sites), "Extra": len(sites) - standardSites(), "SiteList": sites,
+		"Terminal": ansiToHTML(terminalCapture), "Recent": s.board.recent(10),
+		"Top": s.board.top(filter{Metric: metrics[0], Limit: 5}), "Changes": changelog,
+	}
 	if *example == "" {
 		return d
 	}

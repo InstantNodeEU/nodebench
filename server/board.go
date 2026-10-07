@@ -233,3 +233,33 @@ func (b *board) size() int {
 	defer b.mu.RUnlock()
 	return len(b.entries)
 }
+
+// recent returns the newest entries on the board. Only results that were
+// put on the leaderboard show up anywhere in a list, everything else stays
+// reachable by its link alone.
+func (b *board) recent(n int) []*entry {
+	b.mu.RLock()
+	list := make([]*entry, 0, len(b.entries))
+	for _, e := range b.entries {
+		list = append(list, e)
+	}
+	b.mu.RUnlock()
+	slices.SortFunc(list, func(x, y *entry) int { return y.Created.Compare(x.Created) })
+	if len(list) > n {
+		list = list[:n]
+	}
+	return list
+}
+
+// formatted values for the templates
+func (e *entry) SHA() string  { return fmtOr(e.cpuMulti, fmtBytes) }
+func (e *entry) IOPS() string { return fmtOr(e.iops4k, fmtIOPS) }
+func (e *entry) Down() string { return fmtOr(e.netBest, fmtMbps) }
+func (e *entry) Date() string { return e.Created.Format("2006-01-02") }
+
+func fmtOr(v float64, f func(float64) string) string {
+	if v <= 0 {
+		return "-"
+	}
+	return f(v)
+}

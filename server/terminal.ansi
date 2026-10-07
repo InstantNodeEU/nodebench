@@ -1,0 +1,46 @@
+[34m$[0m curl -sL bench.instantnode.eu | bash
+nodebench 1.0.0, github.com/instantnode/nodebench
+Wed Oct  7 09:33:54 CEST 2026
+
+[1mSystem[0m
+---------------------------------------------------------------------
+[2mProcessor   :[0m AMD Ryzen 7 5700X 8-Core Processor
+[2mCores       :[0m 16 @ 3660 MHz
+[2mAES-NI      :[0m yes
+[2mVM-x/AMD-V  :[0m no
+[2mRAM         :[0m 31.2 GiB
+[2mSwap        :[0m 40.0 GiB
+[2mDisk        :[0m 923.5 GiB
+[2mDistro      :[0m Gentoo Linux
+[2mKernel      :[0m 7.1.7-gentoo-dist (x86_64)
+[2mVirt        :[0m none
+[2mUptime      :[0m 0d 1h 56m
+[2mIPv4 / IPv6 :[0m online / online
+[2mProvider    :[0m AS64500 Example Networks (DE)
+
+[1mCPU (openssl speed, 16 KiB blocks)[0m
+---------------------------------------------------------------------
+[2mTest           1 thread       4 threads[0m
+sha256         2.21 GB/s      8.60 GB/s
+aes-256-gcm    5.15 GB/s      19.26 GB/s
+
+[1mDisk (fio, random 50/50 read/write, 256M file)[0m
+---------------------------------------------------------------------
+[2mBlock    Read          Write         Total         IOPS[0m
+4k       1.51 GB/s     1.51 GB/s     3.01 GB/s     789k
+64k      4.21 GB/s     4.21 GB/s     8.42 GB/s     138k
+512k     3.03 GB/s     3.05 GB/s     6.08 GB/s     12.5k
+1m       2.91 GB/s     3.00 GB/s     5.90 GB/s     6043
+
+[1mNetwork (iperf3)[0m
+---------------------------------------------------------------------
+[2mLocation                       Send           Receive        Ping[0m
+London, UK (Clouvider)         38 Mbit/s      89 Mbit/s      23 ms
+Amsterdam, NL (Eranium)        36 Mbit/s      79 Mbit/s      35 ms
+Frankfurt, DE (Leaseweb)       37 Mbit/s      84 Mbit/s      15 ms
+New York, US (Leaseweb)        33 Mbit/s      84 Mbit/s      105 ms
+Los Angeles, US (Clouvider)    30 Mbit/s      8 Mbit/s       161 ms
+Singapore, SG (Leaseweb)       28 Mbit/s      71 Mbit/s      198 ms
+Sao Paulo, BR (Edgoo)          23 Mbit/s      70 Mbit/s      201 ms
+
+Share: [34mhttps://bench.instantnode.eu/r/PVqsFypo[0m

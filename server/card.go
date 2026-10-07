@@ -24,9 +24,6 @@ var (
 	colText   = color.RGBA{0xf2, 0xf1, 0xee, 0xff}
 	colDim    = color.RGBA{0x8f, 0x8e, 0x89, 0xff}
 	colAccent = color.RGBA{0x3b, 0x82, 0xf6, 0xff}
-
-	// the site gradient: cyan, blue, violet
-	gradStops = []color.RGBA{{0x22, 0xd3, 0xee, 0xff}, {0x3b, 0x82, 0xf6, 0xff}, {0x8b, 0x5c, 0xf6, 0xff}}
 )
 
 type faces struct {
@@ -68,9 +65,6 @@ func renderCard(w io.Writer, r *Result) error {
 
 	img := image.NewRGBA(image.Rect(0, 0, cardW, cardH))
 	fill(img, img.Bounds(), colBg)
-	for x := 0; x < cardW; x++ {
-		fill(img, image.Rect(x, 0, x+1, 5), gradAt(float64(x)/float64(cardW-1)))
-	}
 
 	const pad = 64
 	mark(img, pad, 84)
@@ -172,17 +166,6 @@ func mark(img *image.RGBA, x, y int) {
 		}
 		fill(img, image.Rect(x+i*7, y-h, x+i*7+5, y), c)
 	}
-}
-
-func gradAt(t float64) color.RGBA {
-	seg := t * float64(len(gradStops)-1)
-	i := int(seg)
-	if i >= len(gradStops)-1 {
-		return gradStops[len(gradStops)-1]
-	}
-	a, b, f := gradStops[i], gradStops[i+1], seg-float64(i)
-	mix := func(x, y uint8) uint8 { return uint8(float64(x) + (float64(y)-float64(x))*f) }
-	return color.RGBA{mix(a.R, b.R), mix(a.G, b.G), mix(a.B, b.B), 0xff}
 }
 
 func fill(img *image.RGBA, r image.Rectangle, c color.Color) {
