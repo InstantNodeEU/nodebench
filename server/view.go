@@ -14,7 +14,7 @@ type resultView struct {
 	CPU, Specs, Summary, Date, OneLiner    string
 	MHz, Virt, RAM, Swap, DiskSize, Uptime string
 
-	CPUMain, CPUSingle   string
+	CPUMain              string
 	Disk4k, Disk4kIOPS   string
 	BestNet, BestNetFrom string
 }
@@ -40,7 +40,6 @@ func (s *server) view(r *Result) resultView {
 	var sum []string
 	if c := r.CPU; c != nil {
 		v.CPUMain = fmtBytes(c.SHA256N)
-		v.CPUSingle = fmtBytes(c.SHA256)
 		sum = append(sum, "CPU sha256 "+v.CPUMain)
 	}
 	if t := disk4k(r); t != nil {

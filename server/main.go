@@ -18,6 +18,9 @@ import (
 //go:embed templates
 var templateFS embed.FS
 
+//go:embed fonts/*.ttf
+var fontFS embed.FS
+
 var (
 	listen  = flag.String("listen", env("NODEBENCH_LISTEN", ":8080"), "listen address")
 	dataDir = flag.String("data", env("NODEBENCH_DATA", "./data"), "directory for stored results")
@@ -80,6 +83,10 @@ func main() {
 	mux.HandleFunc("GET /{$}", s.handleIndex)
 	mux.HandleFunc("POST /api/results", s.handleUpload)
 	mux.HandleFunc("GET /r/{id}", s.handleResult)
+	mux.HandleFunc("GET /fonts/", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=2592000")
+		http.FileServerFS(fontFS).ServeHTTP(w, r)
+	})
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok\n") })
 
 	srv := &http.Server{

@@ -11,9 +11,6 @@ import (
 	"sync"
 
 	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/gobold"
-	"golang.org/x/image/font/gofont/gomonobold"
-	"golang.org/x/image/font/gofont/goregular"
 	"golang.org/x/image/font/opentype"
 	"golang.org/x/image/math/fixed"
 )
@@ -21,12 +18,12 @@ import (
 const cardW, cardH = 1200, 630
 
 var (
-	colBg     = color.RGBA{0x11, 0x13, 0x15, 0xff}
-	colPanel  = color.RGBA{0x18, 0x1b, 0x1e, 0xff}
-	colLine   = color.RGBA{0x27, 0x2b, 0x30, 0xff}
-	colText   = color.RGBA{0xe4, 0xe6, 0xe8, 0xff}
-	colDim    = color.RGBA{0x8b, 0x91, 0x99, 0xff}
-	colAccent = color.RGBA{0xf0, 0xa8, 0x30, 0xff}
+	colBg     = color.RGBA{0x0d, 0x11, 0x17, 0xff}
+	colPanel  = color.RGBA{0x16, 0x1b, 0x22, 0xff}
+	colLine   = color.RGBA{0x30, 0x36, 0x3d, 0xff}
+	colText   = color.RGBA{0xe6, 0xed, 0xf3, 0xff}
+	colDim    = color.RGBA{0x8b, 0x94, 0x9e, 0xff}
+	colAccent = color.RGBA{0x58, 0xa6, 0xff, 0xff}
 )
 
 type faces struct {
@@ -39,6 +36,8 @@ var (
 )
 
 func loadFaces() {
+	regular, _ := fontFS.ReadFile("fonts/JetBrainsMono-Regular.ttf")
+	bold, _ := fontFS.ReadFile("fonts/JetBrainsMono-Bold.ttf")
 	mk := func(ttf []byte, size float64) font.Face {
 		f, err := opentype.Parse(ttf)
 		if err != nil {
@@ -51,12 +50,12 @@ func loadFaces() {
 		return face
 	}
 	cardFaces = faces{
-		brand: mk(gomonobold.TTF, 30),
-		title: mk(gobold.TTF, 54),
-		spec:  mk(goregular.TTF, 26),
-		label: mk(goregular.TTF, 19),
-		value: mk(gomonobold.TTF, 46),
-		small: mk(goregular.TTF, 21),
+		brand: mk(bold, 30),
+		title: mk(bold, 48),
+		spec:  mk(regular, 22),
+		label: mk(regular, 18),
+		value: mk(bold, 40),
+		small: mk(regular, 19),
 	}
 }
 

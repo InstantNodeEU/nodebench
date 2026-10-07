@@ -90,7 +90,7 @@ fmt_kbs() {
 		else if (v >= 1024) printf "%.1f MB/s", v/1024
 		else printf "%.0f KB/s", v }'
 }
-fmt_iops() { awk -v v="$1" 'BEGIN { if (v >= 1e6) printf "%.2fM", v/1e6; else if (v >= 1e4) printf "%.1fk", v/1e3; else printf "%.0f", v }'; }
+fmt_iops() { awk -v v="$1" 'BEGIN { if (v >= 1e6) printf "%.2fM", v/1e6; else if (v >= 1e5) printf "%.0fk", v/1e3; else if (v >= 1e4) printf "%.1fk", v/1e3; else printf "%.0f", v }'; }
 fmt_mbps() { awk -v v="$1" 'BEGIN { if (v <= 0) printf "-"; else if (v >= 1000) printf "%.2f Gbit/s", v/1000; else printf "%.0f Mbit/s", v }'; }
 fmt_ms() { awk -v v="$1" 'BEGIN { if (v <= 0) printf "-"; else if (v < 10) printf "%.1f ms", v; else printf "%.0f ms", v }'; }
 fmt_kib() {

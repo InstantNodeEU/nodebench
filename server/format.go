@@ -31,6 +31,8 @@ func fmtIOPS(v float64) string {
 	switch {
 	case v >= 1e6:
 		return fmt.Sprintf("%.2fM", v/1e6)
+	case v >= 1e5:
+		return fmt.Sprintf("%.0fk", v/1e3)
 	case v >= 1e4:
 		return fmt.Sprintf("%.1fk", v/1e3)
 	default:

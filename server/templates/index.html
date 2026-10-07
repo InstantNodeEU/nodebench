@@ -7,7 +7,7 @@
 <meta name="description" content="One command to benchmark CPU, disk and network of a Linux server and get a shareable result link.">
 <meta property="og:title" content="nodebench - server benchmark">
 <meta property="og:description" content="One command to benchmark CPU, disk and network of a Linux server and get a shareable result link.">
-<meta name="theme-color" content="#111315">
+<meta name="theme-color" content="#0d1117">
 <style>{{.CSS}}
 .intro { padding: 56px 0 8px; }
 .intro h1 { font-size: 34px; }
@@ -40,8 +40,10 @@ ul.opts span { color: var(--dim); }
 	<li><code>-c</code><span>skip the cpu test</span></li>
 	<li><code>-s</code><span>skip the disk test</span></li>
 	<li><code>-n</code><span>skip the network test</span></li>
-	<li><code>-4</code> / <code>-6</code><span>network tests over IPv4 or IPv6 only</span></li>
+	<li><code>-4, -6</code><span>network tests over IPv4 or IPv6 only</span></li>
 	<li><code>-d DIR</code><span>where to put the disk test file (default: current dir)</span></li>
+	<li><code>-S SIZE</code><span>size of the disk test file (default: 2G)</span></li>
+	<li><code>-t N</code><span>threads for the multi-core cpu test (default: all)</span></li>
 	<li><code>--no-share</code><span>don't upload the result</span></li>
 	<li><code>--json</code><span>print the result as json</span></li>
 </ul>

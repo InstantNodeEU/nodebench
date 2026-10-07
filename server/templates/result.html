@@ -14,7 +14,7 @@
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="#111315">
+<meta name="theme-color" content="#0d1117">
 <style>{{.CSS}}</style>
 </head>
 <body>
@@ -33,7 +33,7 @@
 <section class="big">
 	<div>
 		<div class="k">CPU sha256</div>
-		{{if .R.CPU}}<div class="v">{{.CPUMain}}</div><div class="s">{{.R.CPU.Threads}} threads, {{.CPUSingle}} single</div>
+		{{if .R.CPU}}<div class="v">{{.CPUMain}}</div><div class="s">{{.R.CPU.Threads}} threads</div>
 		{{else}}<div class="v na">skipped</div>{{end}}
 	</div>
 	<div>
@@ -52,8 +52,8 @@
 <h2>CPU <span class="note">openssl speed, 16 KiB blocks</span></h2>
 <div class="scroll"><table>
 	<tr><th>Test</th><th>1 thread</th><th>{{.Threads}} threads</th></tr>
-	<tr><td class="l">sha256</td><td>{{bytes .SHA256}}</td><td>{{bytes .SHA256N}}</td></tr>
-	<tr><td class="l">aes-256-gcm</td><td>{{bytes .AES}}</td><td>{{bytes .AESN}}</td></tr>
+	<tr><td>sha256</td><td>{{bytes .SHA256}}</td><td>{{bytes .SHA256N}}</td></tr>
+	<tr><td>aes-256-gcm</td><td>{{bytes .AES}}</td><td>{{bytes .AESN}}</td></tr>
 </table></div>
 {{end}}
 
@@ -62,7 +62,7 @@
 <div class="scroll"><table>
 	<tr><th>Block size</th><th>Read</th><th>Write</th><th>Total</th><th>IOPS</th></tr>
 	{{range .Tests}}
-	<tr><td class="l">{{.BS}}</td><td>{{kbs .ReadKBs}}</td><td>{{kbs .WriteKBs}}</td><td>{{kbs (add .ReadKBs .WriteKBs)}}</td><td>{{iops (add .ReadIOPS .WriteIOPS)}}</td></tr>
+	<tr><td>{{.BS}}</td><td>{{kbs .ReadKBs}}</td><td>{{kbs .WriteKBs}}</td><td>{{kbs (add .ReadKBs .WriteKBs)}}</td><td>{{iops (add .ReadIOPS .WriteIOPS)}}</td></tr>
 	{{end}}
 </table></div>
 {{end}}
@@ -72,7 +72,7 @@
 <div class="scroll"><table>
 	<tr><th>Location</th><th>Send</th><th>Receive</th><th>Ping</th></tr>
 	{{range .Tests}}
-	<tr><td class="l">{{.Location}} <span class="p">{{.Provider}}{{if eq .Proto 6}}, IPv6{{end}}</span></td><td>{{mbps .Send}}</td><td>{{mbps .Recv}}</td><td>{{ping .Ping}}</td></tr>
+	<tr><td>{{.Location}} <span class="p">{{.Provider}}{{if eq .Proto 6}}, IPv6{{end}}</span></td><td>{{mbps .Send}}</td><td>{{mbps .Recv}}</td><td>{{ping .Ping}}</td></tr>
 	{{end}}
 </table></div>
 {{end}}
