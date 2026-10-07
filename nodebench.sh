@@ -286,6 +286,10 @@ collect_system() {
 		fi
 		LOC_COUNTRY=$(json_field country <<<"$info")
 	fi
+	# InstantNode's own network, the servers are in Eygelshoven
+	if [[ $LOC_ASN == AS49581 ]]; then
+		LOC_ORG=InstantNode LOC_COUNTRY=NL
+	fi
 }
 
 # good enough for ipinfo's flat, one key per line output

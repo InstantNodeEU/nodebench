@@ -16,7 +16,7 @@
   [2mVirt        [0m lxc
   [2mUptime      [0m 0d 2h 43m
   [2mNetwork     [0m IPv4 [38;2;63;185;80monline[0m, IPv6 [2moffline[0m
-  [2mProvider    [0m InstantNode (NL)
+  [2mProvider    [0m AS49581 InstantNode (NL)
 [K  [38;2;59;130;246m⠙[0m [2mcpu: sha256, 1 thread[0m[K  [38;2;59;130;246m⠹[0m [2mcpu: aes-256-gcm, 1 thread[0m[K
   [1mCPU[0m  [2mopenssl speed, 16 KiB blocks[0m
   [2m──────────────────────────────────────────────────────────────────[0m

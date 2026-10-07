@@ -112,3 +112,13 @@ const sample = `{
     {"provider": "Clouvider", "location": "London, UK", "proto": 4, "send_mbps": 905.1, "recv_mbps": 912.4, "ping_ms": 9.8},
     {"provider": "Leaseweb", "location": "Singapore, SG", "proto": 4, "send_mbps": 610.0, "recv_mbps": 0, "ping_ms": 161.2}]}
 }`
+
+func TestInstantNodeASN(t *testing.T) {
+	r, err := decodeResult([]byte(`{"version":"1","system":{"cores":1},"location":{"asn":"AS49581","org":"Ferdinand Zink trading as Tube-Hosting","country":"DE"},"ipv4":true,"ipv6":false,"cpu":{"threads":1,"sha256_1":1,"sha256_n":1,"aes_1":1,"aes_n":1}}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if r.Location.Org != "InstantNode" || r.Location.Country != "NL" {
+		t.Fatalf("got %q / %q, want InstantNode / NL", r.Location.Org, r.Location.Country)
+	}
+}
