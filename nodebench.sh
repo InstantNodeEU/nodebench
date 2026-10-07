@@ -124,6 +124,7 @@ jbool() {
 collect_system() {
 	SYS_OS="Linux"
 	if [[ -r /etc/os-release ]]; then
+		# shellcheck disable=SC1091
 		SYS_OS=$(. /etc/os-release && echo "${PRETTY_NAME:-$NAME}")
 	fi
 	SYS_KERNEL=$(uname -r)
@@ -378,7 +379,7 @@ disk_fio() {
 
 disk_dd() {
 	local count=$(( $(size_kib "$SIZE") / 1024 )) t0 t1 w r
-	DISK_TOOL=dd
+	DISK_TOOL="dd"
 	DISK_ROWS=()
 
 	status "disk: dd sequential write"
@@ -431,14 +432,15 @@ ping_ms() {
 
 # iperf_run <host> <ports> <proto> [-R], prints Mbit/s
 iperf_run() {
-	local host=$1 lo=${2%-*} hi=${2#*-} proto=$3 rev=$4 port out v try
-	for try in 1 2 3; do
+	local host=$1 lo=${2%-*} hi=${2#*-} proto=$3 port out v
+	local extra=("${@:4}")
+	for _ in 1 2 3; do
 		port=$((lo + RANDOM % (hi - lo + 1)))
 		out=$(timeout $((IPERF_TIME + 15)) "$IPERF" -c "$host" -p "$port" -P 8 -t "$IPERF_TIME" \
-			-"$proto" $rev </dev/null 2>&1)
+			-"$proto" "${extra[@]}" </dev/null 2>&1)
 		v=$(awk '/\[SUM\].*receiver/ { print $6, $7 }' <<<"$out")
 		if [[ -n $v ]]; then
-			to_mbps $v
+			to_mbps "${v% *}" "${v#* }"
 			return 0
 		fi
 		sleep 1
@@ -481,7 +483,7 @@ net_test() {
 }
 
 net_iperf() {
-	local proto=$1 entry host ports provider location send recv ping ok
+	local proto=$1 entry host ports provider location send recv ping
 	for entry in "${IPERF_SERVERS[@]}"; do
 		IFS='|' read -r host ports provider location <<<"$entry"
 		status "net: $location ($provider), IPv$proto, ping"
