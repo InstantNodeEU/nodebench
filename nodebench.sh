@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # nodebench - cpu, disk and network benchmark for linux servers
-# https://github.com/instantnode/nodebench
+# https://github.com/instantnodeeu/nodebench
 #
 #   curl -sL https://bench.instantnode.eu | bash
 #   curl -sL https://bench.instantnode.eu | bash -s -- -n --no-share

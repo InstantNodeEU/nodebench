@@ -1,4 +1,4 @@
-module github.com/instantnode/nodebench/server
+module github.com/instantnodeeu/nodebench/server
 
 go 1.26.0
 
