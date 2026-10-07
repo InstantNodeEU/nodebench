@@ -1,55 +1,40 @@
 {{define "main"}}{{$d := .Data}}
-<div class="frame">
-	<section class="page-head">
-		<span class="head-ic">{{template "i-trophy"}}</span>
-		<h1 class="d2">Leaderboard</h1>
-		<p class="lede">Results from people who opted in with <code>-L</code>. These are self-reported runs on all kinds of hardware, so treat them as a rough guide, not a lab test.</p>
-	</section>
+<h1>Leaderboard</h1>
+<p class="lead">Results from people who ran nodebench with <code>-L</code>. Self-reported, on all kinds of hardware, so read it as a rough guide. Only the best run per name, CPU and network is listed.</p>
 
-	<div class="board-tools">
-		<nav class="tabs" aria-label="Ranking">
-			{{range $d.Metrics}}<a href="?m={{.Key}}{{with $d.Virt}}&amp;virt={{.}}{{end}}{{with $d.Country}}&amp;country={{.}}{{end}}"{{if eq .Key $d.M.Key}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}
-		</nav>
-		<form class="filters" method="get">
-			<input type="hidden" name="m" value="{{$d.M.Key}}">
-			<label><span>Type</span><select name="virt" onchange="this.form.submit()"><option value="">All</option>{{range $d.Virts}}<option{{if eq . $d.Virt}} selected{{end}}>{{.}}</option>{{end}}</select></label>
-			<label><span>Country</span><select name="country" onchange="this.form.submit()"><option value="">All</option>{{range $d.Countries}}<option{{if eq . $d.Country}} selected{{end}}>{{.}}</option>{{end}}</select></label>
-			<noscript><button class="btn btn-ghost btn-sm" type="submit">Filter</button></noscript>
-		</form>
-	</div>
+<nav class="tabs" aria-label="Ranking">
+	{{range $d.Metrics}}<a href="?m={{.Key}}{{with $d.Virt}}&amp;virt={{.}}{{end}}{{with $d.Country}}&amp;country={{.}}{{end}}"{{if eq .Key $d.M.Key}} aria-current="true"{{end}}>{{.Label}}</a>{{end}}
+</nav>
+<form class="filters" method="get">
+	<input type="hidden" name="m" value="{{$d.M.Key}}">
+	<label>type<select name="virt" onchange="this.form.submit()"><option value="">all</option>{{range $d.Virts}}<option{{if eq . $d.Virt}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+	<label>country<select name="country" onchange="this.form.submit()"><option value="">all</option>{{range $d.Countries}}<option{{if eq . $d.Country}} selected{{end}}>{{.}}</option>{{end}}</select></label>
+	<noscript><button type="submit">filter</button></noscript>
+</form>
 
-	{{if $d.Rows}}
-	<div class="sheet board"><table>
-		<thead><tr><th class="rk">#</th><th>Name</th><th>Network</th><th>Type</th><th class="valh">{{$d.M.Short}}</th><th>Date</th></tr></thead>
-		<tbody>
-		{{range $d.Rows}}
-		<tr{{if le .Rank 3}} class="top"{{end}}>
-			<td class="rk"><span>{{.Rank}}</span></td>
-			<td><a class="nm" href="/r/{{.E.ID}}">{{.E.Name}}</a><span class="sub">{{.E.CPU}}, {{.E.Cores}} cores</span></td>
-			<td class="txt">{{.E.Org}}<span class="sub">{{.E.ASN}}{{if .E.Country}}{{if .E.ASN}}, {{end}}{{.E.Country}}{{end}}</span></td>
-			<td class="txt">{{.E.Virt}}</td>
-			<td class="valc"><span class="bv">{{.Value}}</span>{{bar .Frac "rank" .Value}}</td>
-			<td class="txt dt">{{.E.Created.Format "2 Jan 2006"}}</td>
-		</tr>
-		{{end}}
-		</tbody>
-	</table></div>
-	{{else}}
-	<div class="empty">
-		<span class="cell-ic">{{template "i-bars"}}</span>
-		<h3>{{if or $d.Virt $d.Country}}Nothing matches these filters yet.{{else}}No results on the board yet.{{end}}</h3>
-		<p>Be the first: add <code>-L</code> when you run nodebench.</p>
-	</div>
+{{if $d.Rows}}
+<div class="tbl"><table>
+	<thead><tr><th class="n">#</th><th>Name</th><th>CPU</th><th>Network</th><th>Type</th><th class="n">{{$d.M.Short}}</th><th></th><th class="n">Date</th></tr></thead>
+	<tbody>
+	{{range $d.Rows}}
+	<tr>
+		<td class="n">{{.Rank}}</td>
+		<td><a href="/r/{{.E.ID}}">{{.E.Name}}</a></td>
+		<td>{{.E.CPU}}<span class="sub">{{.E.Cores}} cores</span></td>
+		<td>{{.E.Org}}<span class="sub">{{.E.ASN}}{{if .E.Country}}{{if .E.ASN}}, {{end}}{{.E.Country}}{{end}}</span></td>
+		<td>{{.E.Virt}}</td>
+		<td class="n">{{.Value}}</td>
+		<td class="barc" style="width:18%">{{bar .Frac "rank" .Value}}</td>
+		<td class="n">{{.E.Date}}</td>
+	</tr>
 	{{end}}
+	</tbody>
+</table></div>
+{{else}}
+<p class="empty">{{if or $d.Virt $d.Country}}Nothing matches these filters.{{else}}Nobody is on the board yet.{{end}} Run it with <code>-L</code> to be the first.</p>
+{{end}}
 
-	<section class="again">
-		<span class="again-ic">{{template "i-trophy"}}</span>
-		<h2>Get your server on the board</h2>
-		<div class="cmd">
-			<code id="cmdL">{{.OneLiner}} -s -- -L "your name"</code>
-			<button class="copy" type="button" data-copy="cmdL">Copy</button>
-		</div>
-		<p class="note">Only the best run per name, CPU and network is listed. Results with impossible numbers stay shareable but don't rank. <a href="/docs#leaderboard">How ranking works</a></p>
-	</section>
-</div>
+<h2>Getting on the board</h2>
+<div class="cmd"><code id="cmdL">{{.OneLiner}} -s -- -L "your name"</code><button class="copy" type="button" data-copy="cmdL">copy</button></div>
+<p class="small">Quick runs (<code>-q</code>) and results with numbers no real hardware produces stay shareable but aren't ranked. <a href="/docs#leaderboard">More on ranking</a>.</p>
 {{end}}

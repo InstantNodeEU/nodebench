@@ -1,41 +1,18 @@
 {{define "main"}}
-<div class="frame">
-	<section class="page-head">
-		<span class="head-ic">{{template "i-globe"}}</span>
-		<h1 class="d2">Test locations</h1>
-		<p class="lede">Every run tests upload, download and ping against the same {{.Data.Standard}} public iperf3 servers, so network numbers mean the same thing from one result to the next. Add <code>-x</code> for all {{.Data.Total}}, or pick regions with <code>-l</code>.</p>
-	</section>
+<h1>Test locations</h1>
+<p class="lead">A normal run tests upload, download, ping and packet loss against the same {{.Data.Standard}} public iperf3 servers, so network numbers mean the same thing from one result to the next. <code>-x</code> adds the other {{.Data.Extra}}, <code>-l</code> picks regions.</p>
 
-	<div class="map-card big">{{.Data.Map}}
-		<div class="map-key"><span class="ours">InstantNode</span><span class="plain">Standard</span><span class="ext">Only with -x</span></div>
-	</div>
+<div class="mapbox">{{.Data.Map}}</div>
+<p class="keys"><i class="dot"></i>standard<i class="dot ours"></i>InstantNode<i class="dot ext"></i>only with -x</p>
 
-	<div class="sheet loc-table"><table>
-		<thead><tr><th>Location</th><th>Network</th><th>Region</th><th>Host</th><th>Runs</th></tr></thead>
-		<tbody>
-		{{range .Data.Sites}}
-		<tr{{if .Ours}} class="ours"{{end}}>
-			<td><span class="loc-ic">{{template "i-pin"}}</span>{{.Location}}</td>
-			<td class="txt">{{.Provider}}{{if .Ours}} <span class="tag">ours</span>{{end}}</td>
-			<td class="txt">{{index $.Data.Regions .Region}} <span class="sub">-l {{.Region}}</span></td>
-			<td class="host">{{.Host}}<span class="sub">ports {{.Ports}}</span></td>
-			<td class="txt">{{if .Extended}}<span class="dim">with -x</span>{{else}}always{{end}}</td>
-		</tr>
-		{{end}}
-		</tbody>
-	</table></div>
+<div class="tbl"><table>
+	<thead><tr><th>Location</th><th>Network</th><th>Region</th><th>Host</th><th>Ports</th><th>Runs</th></tr></thead>
+	<tbody>
+	{{range .Data.Sites}}
+	<tr{{if .Ours}} class="ours"{{end}}><td>{{.Location}}</td><td>{{.Provider}}</td><td class="m">{{.Region}}</td><td class="m">{{.Host}}</td><td class="m">{{.Ports}}</td><td>{{if .Extended}}-x{{else}}always{{end}}</td></tr>
+	{{end}}
+	</tbody>
+</table></div>
 
-	<div class="cells two">
-		<div class="cell">
-			<span class="cell-ic">{{template "i-server"}}</span>
-			<h3>Why Eygelshoven comes first</h3>
-			<p>It's InstantNode's own network in the Netherlands, between Amsterdam and Frankfurt. We run nodebench, so we test against our own looking glass first. It's an ordinary location in the results and gets no special treatment.</p>
-		</div>
-		<div class="cell">
-			<span class="cell-ic">{{template "i-net"}}</span>
-			<h3>When a server doesn't answer</h3>
-			<p>Public iperf3 servers are shared and sometimes busy. nodebench tries up to three ports per server. If one direction still fails, the result shows it as failed instead of a misleading zero. Every server on this list was checked to answer before it was added.</p>
-		</div>
-	</div>
-</div>
+<p>Eygelshoven is our own network, between Amsterdam and Frankfurt. We test against it first because we run nodebench and it's the link we know best, but it's an ordinary location in the results. The others are public servers run by their providers. Each one answered from our network before it went on this list. Public iperf3 servers are shared and sometimes busy, so a result can show a failed direction now and then.</p>
 {{end}}

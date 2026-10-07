@@ -1,64 +1,49 @@
 {{define "main"}}{{with .Data}}
-<div class="frame">
-	<section class="res-head">
-		<span class="k">Result <span class="id">{{.R.ID}}</span> &middot; {{.Date}}{{with .Took}} &middot; {{.}}{{end}}{{if .R.Quick}} <span class="tag">quick run</span>{{end}}</span>
-		<h1>{{.CPU}}</h1>
-		<p class="specs">{{.Specs}}</p>
-		<div class="acts">
-			<button class="btn btn-ghost btn-sm" type="button" data-copy="{{.URL}}" data-done="Link copied">{{template "i-link"}}Copy link</button>
-			<a class="btn btn-ghost btn-sm" href="{{.URL}}.png">{{template "i-bars"}}Preview image</a>
-			<a class="btn btn-ghost btn-sm" href="{{.URL}}.json">{{template "i-code"}}Raw JSON</a>
-		</div>
-	</section>
+<p class="res-meta">result {{.R.ID}}, {{.Date}}{{with .Took}}, {{.}}{{end}}, nodebench {{.R.Version}}{{if .R.Quick}}, <span class="tag">quick run</span>{{end}}</p>
+<h1>{{.CPU}}</h1>
+<p class="lead" style="margin-bottom:0">{{.Specs}}</p>
 
-	{{template "overview" .}}
-
-	{{with .CPUChart}}
-	<section class="block">
-		<div class="block-h"><span class="bh-ic">{{template "i-cpu"}}</span><h2>CPU</h2><span>openssl speed, 16 KiB blocks</span></div>
-		<div class="panel">{{template "cpu-chart" .}}</div>
-	</section>
-	{{end}}
-
-	{{with .DiskChart}}
-	<section class="block">
-		<div class="block-h"><span class="bh-ic">{{template "i-disk"}}</span><h2>Disk</h2><span>{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file{{with .Device}}, {{.}}{{end}}</span></div>
-		<div class="panel">{{template "disk-chart" .}}</div>
-	</section>
-	{{end}}
-
-	{{with .NetChart}}
-	<section class="block">
-		<div class="block-h"><span class="bh-ic">{{template "i-globe"}}</span><h2>Network</h2><span>{{.Tool}}, both directions</span></div>
-		<div class="panel">{{template "net-chart" .}}</div>
-	</section>
-	{{end}}
-
-	<section class="block">
-		<div class="block-h"><span class="bh-ic">{{template "i-server"}}</span><h2>System</h2></div>
-		<dl class="sys">
-			<div><dt>Processor</dt><dd>{{.R.System.CPU}}</dd></div>
-			<div><dt>Cores</dt><dd>{{.R.System.Cores}}{{with .MHz}} @ {{.}}{{end}}</dd></div>
-			<div><dt>Flags</dt><dd>AES-NI {{yesno .R.System.AES}}, VM-x/AMD-V {{yesno .R.System.VMX}}</dd></div>
-			<div><dt>Virtualization</dt><dd>{{.Virt}}</dd></div>
-			<div><dt>Memory</dt><dd>{{.RAM}}{{if .R.System.Swap}}, {{.Swap}} swap{{end}}</dd></div>
-			<div><dt>Disk</dt><dd>{{.DiskSize}}</dd></div>
-			<div><dt>OS</dt><dd>{{.R.System.OS}} ({{.R.System.Arch}})</dd></div>
-			<div><dt>Kernel</dt><dd>{{.R.System.Kernel}}</dd></div>
-			<div><dt>Uptime</dt><dd>{{.Uptime}}</dd></div>
-			<div><dt>Network</dt><dd>IPv4 {{yesno .R.IPv4}}, IPv6 {{yesno .R.IPv6}}</dd></div>
-			{{with .R.Location}}<div><dt>Provider</dt><dd>{{.Org}}{{if .ASN}} ({{.ASN}}){{end}}{{if .Country}}, {{.Country}}{{end}}</dd></div>{{end}}
-			<div><dt>nodebench</dt><dd>{{.R.Version}}{{if .R.Leaderboard}}, on the <a href="/leaderboard">leaderboard</a>{{end}}</dd></div>
-		</dl>
-	</section>
-
-	<section class="again">
-		<span class="again-ic">{{template "i-term"}}</span>
-		<h2>Benchmark your own server</h2>
-		<div class="cmd">
-			<code id="cmd">{{$.OneLiner}}</code>
-			<button class="copy" type="button" data-copy="cmd">Copy</button>
-		</div>
-	</section>
+<div class="headline">
+	<div><span>cpu</span><b>{{if .R.CPU}}{{.CPUMain}}{{else}}-{{end}}</b></div>
+	<div><span>disk 4k</span><b>{{if .Disk4k}}{{.Disk4kIOPS}} IOPS{{else}}-{{end}}</b></div>
+	<div><span>download</span><b>{{if .BestNet}}{{.BestNet}}{{else}}-{{end}}</b></div>
 </div>
+<p class="links"><a href="#" data-copy="{{.URL}}">copy link</a><a href="{{.URL}}.png">preview image</a><a href="{{.URL}}.json">json</a>{{if .R.Leaderboard}}<a href="/leaderboard">on the leaderboard</a>{{end}}</p>
+
+{{with .CPUChart}}
+<h2>CPU</h2>
+<p class="small">openssl speed, 16 KiB blocks</p>
+{{template "cpu-chart" .}}
+{{end}}
+
+{{with .DiskChart}}
+<h2>Disk</h2>
+<p class="small">{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file{{with .Device}}, {{.}}{{end}}</p>
+{{template "disk-chart" .}}
+{{end}}
+
+{{with .NetChart}}
+<h2>Network</h2>
+<p class="small">{{.Tool}}, both directions. Lines on the map go from the server's country to each test location, coloured by ping.</p>
+{{template "net-chart" .}}
+{{end}}
+
+<h2>System</h2>
+<dl class="kv">
+	<dt>Processor</dt><dd>{{.R.System.CPU}}</dd>
+	<dt>Cores</dt><dd>{{.R.System.Cores}}{{with .MHz}} @ {{.}}{{end}}</dd>
+	<dt>Flags</dt><dd>AES-NI {{yesno .R.System.AES}}, VM-x/AMD-V {{yesno .R.System.VMX}}</dd>
+	<dt>Virtualization</dt><dd>{{.Virt}}</dd>
+	<dt>Memory</dt><dd>{{.RAM}}{{if .R.System.Swap}}, {{.Swap}} swap{{end}}</dd>
+	<dt>Disk</dt><dd>{{.DiskSize}}</dd>
+	<dt>OS</dt><dd>{{.R.System.OS}} ({{.R.System.Arch}})</dd>
+	<dt>Kernel</dt><dd>{{.R.System.Kernel}}</dd>
+	<dt>Uptime</dt><dd>{{.Uptime}}</dd>
+	<dt>Network</dt><dd>IPv4 {{yesno .R.IPv4}}, IPv6 {{yesno .R.IPv6}}</dd>
+	{{with .R.Location}}<dt>Provider</dt><dd>{{.Org}}{{if .ASN}} ({{.ASN}}){{end}}{{if .Country}}, {{.Country}}{{end}}</dd>{{end}}
+</dl>
+
+<hr>
+<p>Benchmark your own server:</p>
+<div class="cmd"><code id="cmd">{{$.OneLiner}}</code><button class="copy" type="button" data-copy="cmd">copy</button></div>
 {{end}}{{end}}

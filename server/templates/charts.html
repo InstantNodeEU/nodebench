@@ -1,76 +1,46 @@
 {{define "cpu-chart"}}
-<div class="chart cpu-chart">
+<p class="keys"><i class="single"></i>1 thread<i></i>{{.Threads}} threads</p>
+<div class="tbl"><table>
+	<thead><tr><th>Test</th><th class="n">1 thread</th><th class="n">{{.Threads}} threads</th><th class="n">Scaling</th><th></th></tr></thead>
+	<tbody>
 	{{range .Rows}}
-	<div class="cgroup">
-		<div class="cgroup-h"><span class="cname">{{.Name}}</span>{{with .Scale}}<span class="scale" title="all threads compared to one">{{.}} <small>multi-core scaling</small></span>{{end}}</div>
-		<div class="hrow"><span class="lbl">1 thread</span>{{bar .SFrac "single" .SingleT}}<span class="val">{{.Single}}</span></div>
-		<div class="hrow"><span class="lbl">{{$.Threads}} threads</span>{{bar .MFrac "multi" .MultT}}<span class="val strong">{{.Multi}}</span></div>
-	</div>
+	<tr><td class="m">{{.Name}}</td><td class="n">{{.Single}}</td><td class="n">{{.Multi}}</td><td class="n">{{.Scale}}</td><td class="barc">{{bar .SFrac "single" .SingleT}}{{bar .MFrac "multi" .MultT}}</td></tr>
 	{{end}}
-	{{with .Steal}}<div class="steal" title="CPU time the hypervisor gave to other guests while all threads were busy. Close to 0 is what you want on a VPS.">Steal time during the {{$.Threads}} thread run <span class="ping {{$.StealClass}}">{{.}}</span></div>{{end}}
-</div>
+	</tbody>
+</table></div>
+{{with .Steal}}<p class="note">Steal time during the {{$.Threads}} thread run: <span class="mono ping-{{$.StealClass}}">{{.}}</span>. That's CPU time the hypervisor gave to other guests while this one wanted it. Close to 0 is what you want.</p>{{end}}
 {{end}}
 
 {{define "disk-chart"}}
-<div class="chart disk-chart">
-	<div class="legend"><span class="sw read"></span>Read<span class="sw write"></span>Write<span class="legend-r">IOPS, read+write</span></div>
+<p class="keys"><i></i>read<i class="write"></i>write</p>
+<div class="tbl"><table>
+	<thead><tr><th>Block</th><th class="n">Read</th><th class="n">Write</th><th class="n">IOPS</th><th></th></tr></thead>
+	<tbody>
 	{{range .Rows}}
-	<div class="dgroup">
-		<span class="bs">{{.BS}}</span>
-		<div class="dbars">
-			<div class="hrow">{{bar .RFrac "read" .ReadT}}<span class="val">{{.Read}}</span></div>
-			<div class="hrow">{{bar .WFrac "write" .WriteT}}<span class="val">{{.Write}}</span></div>
-		</div>
-		<span class="iops">{{.IOPS}}</span>
-	</div>
+	<tr><td class="m">{{.BS}}</td><td class="n">{{.Read}}</td><td class="n">{{.Write}}</td><td class="n">{{.IOPS}}</td><td class="barc">{{bar .RFrac "read" .ReadT}}{{bar .WFrac "write" .WriteT}}</td></tr>
 	{{end}}
-</div>
+	</tbody>
+</table></div>
 {{end}}
 
 {{define "net-chart"}}
-<div class="chart net-chart">
-	<div class="map-wrap">{{.Map}}
-		<div class="map-key">{{if .Origin}}<span class="origin">this server</span>{{end}}<span class="near">under 50 ms</span><span class="mid">50 to 150 ms</span><span class="far">over 150 ms</span></div>
-	</div>
-	<div class="legend"><span class="sw send"></span>Upload<span class="sw recv"></span>Download<span class="legend-r">Ping</span></div>
-	{{range .Groups}}
-	{{with .Label}}<div class="ngroup">{{.}}</div>{{end}}
+<div class="mapbox">{{.Map}}</div>
+<p class="keys"><i class="send"></i>upload<i></i>download</p>
+{{range .Groups}}
+{{with .Label}}<h3>{{.}}</h3>{{end}}
+<div class="tbl"><table>
+	<thead><tr><th>Location</th><th class="n">Upload</th><th class="n">Download</th><th class="n">Ping</th><th></th></tr></thead>
+	<tbody>
 	{{range .Rows}}
-	<div class="nrow{{if .Ours}} ours{{end}}">
-		<div class="nloc">
-			<span class="place">{{.Location}}</span>
-			<span class="prov">{{.Provider}}{{if .Ours}} <em>our network</em>{{end}}</span>
-		</div>
-		<div class="nbars">
-			<div class="hrow">{{if .SendFailed}}<span class="failed">{{template "i-x"}}upload failed</span>{{else}}{{bar .SFrac "send" .SendT}}<span class="val">{{.Send}}</span>{{end}}</div>
-			<div class="hrow">{{if .RecvFailed}}<span class="failed">{{template "i-x"}}download failed</span>{{else}}{{bar .RFrac "recv" .RecvT}}<span class="val">{{.Recv}}</span>{{end}}</div>
-		</div>
-		<span class="pingc"><span class="ping {{.PingClass}}">{{.Ping}}</span>{{with .Loss}}<span class="loss">{{.}}</span>{{end}}</span>
-	</div>
+	<tr{{if .Ours}} class="ours"{{end}}>
+		<td>{{.Location}}<span class="sub">{{.Provider}}</span></td>
+		<td class="n">{{if .SendFailed}}<span class="failed">failed</span>{{else}}{{.Send}}{{end}}</td>
+		<td class="n">{{if .RecvFailed}}<span class="failed">failed</span>{{else}}{{.Recv}}{{end}}</td>
+		<td class="n"><span class="ping-{{.PingClass}}">{{.Ping}}</span>{{with .Loss}}<span class="sub">{{.}}</span>{{end}}</td>
+		<td class="barc">{{if not .SendFailed}}{{bar .SFrac "send" .SendT}}{{end}}{{if not .RecvFailed}}{{bar .RFrac "recv" .RecvT}}{{end}}</td>
+	</tr>
 	{{end}}
-	{{end}}
-</div>
+	</tbody>
+</table></div>
 {{end}}
-
-{{define "overview"}}
-<div class="tiles">
-	<div class="tile">
-		<span class="tile-ic">{{template "i-cpu"}}</span>
-		<span class="k">CPU sha256, all threads</span>
-		{{if .R.CPU}}<div class="v">{{.CPUMain}}</div><div class="s">{{.R.CPU.Threads}} threads{{with .CPUChart}}{{with index .Rows 0}}{{with .Scale}}, {{.}} over one{{end}}{{end}}{{end}}</div>
-		{{else}}<div class="v na">skipped</div>{{end}}
-	</div>
-	<div class="tile">
-		<span class="tile-ic">{{template "i-disk"}}</span>
-		<span class="k">Disk 4k random</span>
-		{{if .Disk4k}}<div class="v">{{.Disk4k}}</div><div class="s">{{.Disk4kIOPS}} IOPS read+write</div>
-		{{else}}<div class="v na">skipped</div>{{end}}
-	</div>
-	<div class="tile">
-		<span class="tile-ic">{{template "i-net"}}</span>
-		<span class="k">Best download</span>
-		{{if .BestNet}}<div class="v">{{.BestNet}}</div><div class="s">{{.BestNetFrom}}</div>
-		{{else}}<div class="v na">skipped</div>{{end}}
-	</div>
-</div>
 {{end}}

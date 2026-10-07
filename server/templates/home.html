@@ -1,129 +1,80 @@
-{{define "main"}}
-<div class="frame">
-	<section class="hero">
-		<h1 class="d1">Benchmark any server<br>in <span class="grad">one line</span>.</h1>
-		<p class="lede">CPU, disk and network for any Linux box. No root, nothing left installed, and a result link that unfurls nicely in Discord, forums and tickets.</p>
-		<div class="cmd">
-			<code id="cmd">{{.OneLiner}}</code>
-			<button class="copy" type="button" data-copy="cmd">Copy</button>
-		</div>
-		<div class="facts"><span>{{template "i-term"}}bash and curl, no root</span><span>{{template "i-globe"}}{{.Data.Sites}} network locations</span><span>{{template "i-clock"}}done in a few minutes</span><span>{{template "i-code"}}MIT licensed</span></div>
-	</section>
+{{define "main"}}{{$d := .Data}}
+<h1>nodebench</h1>
+<p class="lead">A benchmark script for Linux servers. It measures CPU, disk and network, prints plain tables and gives you a link to the result.</p>
 
-	<div class="shot term"><img src="/static/terminal.png" alt="nodebench output in a terminal: system info, cpu, disk and network tables, then the share link" width="1284" height="1786"></div>
+<div class="cmd"><code id="cmd">{{.OneLiner}}</code><button class="copy" type="button" data-copy="cmd">copy</button></div>
 
-	<section class="sec">
-		<div class="sec-head">
-			<span class="k">What it measures</span>
-			<h2 class="d2">Numbers you can actually compare.</h2>
-			<p class="lede">The same tools and parameters people already post on forums, so a result from your box lines up with everybody else's.</p>
-		</div>
-		<div class="cells">
-			<div class="cell">
-				<span class="cell-ic">{{template "i-cpu"}}</span>
-				<h3>CPU</h3>
-				<p>openssl sha256 and aes-256-gcm on one thread and on all of them, plus the steal time a busy host takes from your cores while they work.</p>
-			</div>
-			<div class="cell">
-				<span class="cell-ic">{{template "i-disk"}}</span>
-				<h3>Disk</h3>
-				<p>fio random read/write at 4k, 64k, 512k and 1m with the same settings as yabs, plus what the disk is: NVMe, SSD, HDD or a virtual disk.</p>
-			</div>
-			<div class="cell">
-				<span class="cell-ic">{{template "i-net"}}</span>
-				<h3>Network</h3>
-				<p>iperf3 upload and download, ping and packet loss against {{.Data.Sites}} public servers on five continents, over IPv4 and IPv6.</p>
-			</div>
-		</div>
-		<p class="more-link"><a href="/docs">Methodology and all options {{template "i-arrow"}}</a></p>
-	</section>
+<pre class="tty">{{$d.Terminal}}</pre>
+<p class="caption">A real run, copied from the terminal.</p>
 
-	{{with .Data.Example}}
-	<section class="sec">
-		<div class="sec-head">
-			<span class="k">A real result</span>
-			<h2 class="d2">Every run gets a page like this.</h2>
-			<p class="lede">The script prints a short link at the end. This is a real run, hover the bars for the exact numbers.</p>
-		</div>
-		<div class="example">
-			<div class="example-bar">
-				<span class="dots"><i></i><i></i><i></i></span>
-				<span class="addr">{{.URL}}</span>
-			</div>
-			<div class="example-body">
-				<div class="ex-head"><h3>{{.CPU}}</h3><p>{{.Specs}}</p></div>
-				{{template "overview" .}}
-				<div class="ex-grid">
-					{{with .CPUChart}}<div class="panel"><div class="panel-h">{{template "i-cpu"}}CPU</div>{{template "cpu-chart" .}}</div>{{end}}
-					{{with .DiskChart}}<div class="panel"><div class="panel-h">{{template "i-disk"}}Disk</div>{{template "disk-chart" .}}</div>{{end}}
-				</div>
-			</div>
-		</div>
-		<p class="more-link"><a href="/r/{{.R.ID}}">Open the full result {{template "i-arrow"}}</a></p>
-	</section>
+<h2>Why</h2>
+<p>We run servers in Eygelshoven, NL, and spend a fair amount of time comparing machines: ours, ones customers send us, ones we are thinking of buying. The usual benchmark scripts print good numbers, but you end up pasting screenshots of a terminal into tickets and chats. nodebench gives every run a link with the full result and a preview image, so a benchmark can be shared like anything else.</p>
+<p>Most of the work is done by other people's tools. The disk test uses <a href="https://github.com/axboe/fio">fio</a> with the parameters from <a href="https://github.com/masonr/yet-another-bench-script">yabs</a>, so the numbers line up with what's already posted on forums, and the static fio and iperf3 builds come from the yabs releases too. The network test is <a href="https://github.com/esnet/iperf">iperf3</a> against public servers, the CPU test is <code>openssl speed</code>. nodebench runs as a normal user and removes everything it downloaded when it exits.</p>
+
+<h2>Recent results</h2>
+{{if $d.Recent}}
+<div class="tbl"><table>
+	<thead><tr><th>CPU</th><th>Type</th><th>Network</th><th class="n">sha256</th><th class="n">4k IOPS</th><th class="n">Download</th><th class="n">Date</th></tr></thead>
+	<tbody>
+	{{range $d.Recent}}
+	<tr><td><a href="/r/{{.ID}}">{{.CPU}}</a><span class="sub">{{.Cores}} cores</span></td><td>{{.Virt}}</td><td>{{.Org}}<span class="sub">{{.Country}}</span></td><td class="n">{{.SHA}}</td><td class="n">{{.IOPS}}</td><td class="n">{{.Down}}</td><td class="n">{{.Date}}</td></tr>
 	{{end}}
+	</tbody>
+</table></div>
+{{else}}
+<p class="empty">Nothing here yet. Results are only listed when they were run with <code>-L</code>, everything else is reachable by its link only.</p>
+{{end}}
 
-	<section class="sec">
-		<div class="sec-head">
-			<span class="k">How it works</span>
-			<h2 class="d2">Runs anywhere, leaves nothing.</h2>
-		</div>
-		<ol class="steps">
-			<li class="cell"><span class="step-n">1</span><span class="cell-ic">{{template "i-term"}}</span><h3>Paste the line</h3><p>Plain bash and curl, as a normal user. No package manager, no root, no agent.</p></li>
-			<li class="cell"><span class="step-n">2</span><span class="cell-ic">{{template "i-clock"}}</span><h3>Wait a few minutes</h3><p>Missing tools are fetched as static builds into a temp directory, checked against their sha256 sums and deleted at the end.</p></li>
-			<li class="cell"><span class="step-n">3</span><span class="cell-ic">{{template "i-link"}}</span><h3>Read it or share it</h3><p>Plain tables in your terminal, plus a link with charts and a preview image. Or keep it local with <code>--no-share</code>.</p></li>
-		</ol>
-	</section>
+{{with $d.Top}}
+<h3>Top 5 by CPU</h3>
+<div class="tbl"><table>
+	<tbody>
+	{{range $i, $e := .}}
+	<tr><td class="m">{{inc $i}}</td><td><a href="/r/{{.ID}}">{{.Name}}</a><span class="sub">{{.CPU}}</span></td><td>{{.Org}}</td><td class="n">{{.SHA}}</td></tr>
+	{{end}}
+	</tbody>
+</table></div>
+<p class="small"><a href="/leaderboard">Full leaderboard</a>, with disk and network rankings.</p>
+{{end}}
 
-	<section class="sec">
-		<div class="split">
-			<div class="txt">
-				<span class="k">Test locations</span>
-				<h2 class="d2">Five continents, {{.Data.Sites}} servers.</h2>
-				<p class="lede">Every run tests against the same public iperf3 servers, so the network numbers mean the same thing from one result to the next. {{.Data.Total}} with <code>-x</code>.</p>
-				<ul class="site-list">
-					<li class="ours"><span class="dot"></span>Eygelshoven, NL <em>InstantNode</em></li>
-					<li><span class="dot"></span>London, Amsterdam, Frankfurt, Paris</li>
-					<li><span class="dot"></span>New York, Dallas, Los Angeles</li>
-					<li><span class="dot"></span>Sao Paulo</li>
-					<li><span class="dot"></span>Singapore, Tokyo, Sydney</li>
-				</ul>
-				<div><a class="btn btn-ghost" href="/locations">All locations {{template "i-arrow"}}</a></div>
-			</div>
-			<div class="map-card">{{.Data.Map}}</div>
-		</div>
-	</section>
+<h2>Options</h2>
+<p>Pass them after <code>bash -s --</code>, for example <code>{{.OneLiner}} -s -- -q -l eu</code>.</p>
+<dl class="opts">
+	<dt>-c, -s, -n</dt><dd>skip the cpu, disk or network test</dd>
+	<dt>-4, -6</dt><dd>network tests over IPv4 or IPv6 only</dd>
+	<dt>-l REGIONS</dt><dd>only test these network regions: eu, na, sa, asia, oc</dd>
+	<dt>-x</dt><dd>all {{$d.Total}} test locations instead of the standard {{$d.Sites}}</dd>
+	<dt>-q</dt><dd>quick run with shorter tests and a 512M disk file</dd>
+	<dt>-d DIR</dt><dd>directory for the disk test file, default is the current one</dd>
+	<dt>-S SIZE</dt><dd>size of the disk test file, default 2G</dd>
+	<dt>-t N</dt><dd>threads for the multi-core cpu test, default is all cores</dd>
+	<dt>-L [NAME]</dt><dd>put the result on the <a href="/leaderboard">leaderboard</a>, optionally under a name</dd>
+	<dt>--no-share</dt><dd>don't upload anything</dd>
+	<dt>--json</dt><dd>print the result as json</dd>
+</dl>
+<p class="small">More on what each test does in the <a href="/docs">docs</a>.</p>
 
-	<section class="sec">
-		<div class="cells">
-			<a class="cell link-cell" href="/leaderboard">
-				<span class="cell-ic">{{template "i-trophy"}}</span>
-				<h3>Leaderboard</h3>
-				<p>Add <code>-L</code> and your result is ranked against everyone else who opted in.</p>
-				<span class="go">See the rankings {{template "i-arrow"}}</span>
-			</a>
-			<a class="cell link-cell" href="/privacy">
-				<span class="cell-ic">{{template "i-lock"}}</span>
-				<h3>Your IP stays with you</h3>
-				<p>No IP address is uploaded or logged. Only hardware, results, provider and country.</p>
-				<span class="go">What gets uploaded {{template "i-arrow"}}</span>
-			</a>
-			<a class="cell link-cell" href="/self-host">
-				<span class="cell-ic">{{template "i-server"}}</span>
-				<h3>Self-host it</h3>
-				<p>One Go binary and a folder of JSON files. Point the script at it with one variable.</p>
-				<span class="go">Run your own {{template "i-arrow"}}</span>
-			</a>
-		</div>
-	</section>
+<h2>Test locations</h2>
+<div class="tbl"><table>
+	<thead><tr><th>Location</th><th>Network</th><th>Host</th></tr></thead>
+	<tbody>
+	{{range $d.SiteList}}{{if not .Extended}}
+	<tr{{if .Ours}} class="ours"{{end}}><td>{{.Location}}</td><td>{{.Provider}}</td><td class="m">{{.Host}}</td></tr>
+	{{end}}{{end}}
+	</tbody>
+</table></div>
+<p class="small">{{$d.Extra}} more with <code>-x</code>. The full list and a map are on the <a href="/locations">locations</a> page.</p>
 
-	<section class="cta">
-		<h2 class="d2">Try it on your next box.</h2>
-		<div class="cmd">
-			<code id="cmd2">{{.OneLiner}}</code>
-			<button class="copy" type="button" data-copy="cmd2">Copy</button>
-		</div>
-		<a class="btn btn-light" href="https://github.com/instantnode/nodebench">Star on GitHub</a>
-	</section>
-</div>
+<h2>Questions</h2>
+<h3>Does it need root?</h3>
+<p>No. The disk test needs write access to the directory it runs in, <code>-d</code> picks another one.</p>
+<h3>What gets uploaded?</h3>
+<p>Hardware, results, provider and country, the same JSON <code>--json</code> prints. No IP address. Details on the <a href="/privacy">privacy</a> page.</p>
+<h3>How much traffic does it use?</h3>
+<p>Mostly the iperf3 tests, up to about 1.2 GB per location and direction on a gigabit port. Use <code>-n</code>, <code>-l</code> or <code>-q</code> on metered connections.</p>
+
+<h2>Changes</h2>
+<ul class="log">
+	{{range $d.Changes}}<li><time>{{.Date}}</time><span>{{.Text}}</span></li>{{end}}
+</ul>
 {{end}}

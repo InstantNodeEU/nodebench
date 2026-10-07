@@ -1,58 +1,31 @@
 {{define "main"}}
-<div class="frame narrow">
-	<section class="page-head">
-		<span class="head-ic">{{template "i-server"}}</span>
-		<h1 class="d2">Run your own share server</h1>
-		<p class="lede">The server is one Go binary. Results are stored as plain JSON files, there's no database to run next to it.</p>
-	</section>
+<h1>Running your own share server</h1>
+<p class="lead">The server is one Go binary. Results are stored as JSON files in a directory, there's no database.</p>
 
-	<ol class="howto">
-		<li>
-			<h3>Build it</h3>
-<pre><b>$</b> git clone https://github.com/instantnode/nodebench
-<b>$</b> cd nodebench/server
-<b>$</b> go build -o nodebench-server .</pre>
-		</li>
-		<li>
-			<h3>Start it</h3>
-<pre><b>$</b> ./nodebench-server -base https://bench.example.com \
-    -data /var/lib/nodebench -script ../nodebench.sh</pre>
-			<p>A systemd unit and an nginx config are in <code>deploy/</code>. Put it behind a reverse proxy for TLS and start it with <code>-proxy</code> so the upload limit sees real client addresses.</p>
-		</li>
-		<li>
-			<h3>Point the script at it</h3>
-<pre><b>$</b> curl -sL https://bench.example.com | NODEBENCH_URL=https://bench.example.com bash</pre>
-			<p>The server hands out the script itself when it's fetched with curl or wget, so the one-liner works against your host too.</p>
-		</li>
-	</ol>
+<h2>Build and start</h2>
+<pre><span class="d">$</span> git clone https://github.com/instantnode/nodebench
+<span class="d">$</span> cd nodebench/server
+<span class="d">$</span> go build -o nodebench-server .
+<span class="d">$</span> ./nodebench-server -base https://bench.example.com -data /var/lib/nodebench -script ../nodebench.sh</pre>
+<p>A systemd unit and an nginx config are in <code>deploy/</code>. Put it behind a reverse proxy for TLS and start it with <code>-proxy</code> so the upload limit sees real client addresses. The nginx config turns the access log off, because the pages say IP addresses aren't logged.</p>
 
-	<div class="sheet opts"><table>
-		<thead><tr><th>Flag</th><th>Env</th><th>Default</th><th></th></tr></thead>
-		<tbody>
-		<tr><td class="flag">-listen</td><td>NODEBENCH_LISTEN</td><td>:8080</td><td class="desc">listen address</td></tr>
-		<tr><td class="flag">-base</td><td>NODEBENCH_BASE</td><td>http://localhost:8080</td><td class="desc">public url used in share links</td></tr>
-		<tr><td class="flag">-data</td><td>NODEBENCH_DATA</td><td>./data</td><td class="desc">where results are stored</td></tr>
-		<tr><td class="flag">-script</td><td>NODEBENCH_SCRIPT</td><td>../nodebench.sh</td><td class="desc">served to curl and wget on /</td></tr>
-		<tr><td class="flag">-proxy</td><td>NODEBENCH_PROXY</td><td>off</td><td class="desc">trust X-Forwarded-For, only behind a proxy</td></tr>
-		<tr><td class="flag">-rate</td><td></td><td>20</td><td class="desc">uploads per IP per hour</td></tr>
-		<tr><td class="flag">-example</td><td>NODEBENCH_EXAMPLE</td><td></td><td class="desc">result shown on the home page</td></tr>
-		<tr><td class="flag"></td><td>NODEBENCH_ADMIN_TOKEN</td><td></td><td class="desc">enables hiding results from the leaderboard</td></tr>
-		</tbody>
-	</table></div>
+<h2>Point the script at it</h2>
+<pre><span class="d">$</span> curl -sL https://bench.example.com | NODEBENCH_URL=https://bench.example.com bash</pre>
+<p>The server hands out the script itself when it's fetched with curl or wget, so the one-liner works against your host too.</p>
 
-	<div class="cells two">
-		<div class="cell">
-			<span class="cell-ic">{{template "i-trophy"}}</span>
-			<h3>Moderating the leaderboard</h3>
-			<p>With an admin token set, this takes a result off the leaderboard. The result page itself stays online.</p>
-<pre><b>$</b> curl -X POST -H "Authorization: Bearer $TOKEN" \
-    https://bench.example.com/api/results/&lt;id&gt;/hide</pre>
-		</div>
-		<div class="cell">
-			<span class="cell-ic">{{template "i-disk"}}</span>
-			<h3>Storage</h3>
-			<p>One small JSON file per result, sharded into folders by the first two characters of the id. Back up the data directory and you have everything, including the list of hidden results.</p>
-		</div>
-	</div>
-</div>
+<h2>Settings</h2>
+<dl class="opts">
+	<dt>-listen</dt><dd>listen address, default <code>:8080</code> (<code>NODEBENCH_LISTEN</code>)</dd>
+	<dt>-base</dt><dd>public URL used in share links (<code>NODEBENCH_BASE</code>)</dd>
+	<dt>-data</dt><dd>where results are stored, default <code>./data</code> (<code>NODEBENCH_DATA</code>)</dd>
+	<dt>-script</dt><dd>the script served to curl and wget on <code>/</code> (<code>NODEBENCH_SCRIPT</code>)</dd>
+	<dt>-proxy</dt><dd>trust <code>X-Forwarded-For</code>, only behind a proxy (<code>NODEBENCH_PROXY</code>)</dd>
+	<dt>-rate</dt><dd>uploads per IP per hour, default 20</dd>
+	<dt>-example</dt><dd>a result id to link from the home page (<code>NODEBENCH_EXAMPLE</code>)</dd>
+	<dt>NODEBENCH_ADMIN_TOKEN</dt><dd>enables taking results off the leaderboard</dd>
+</dl>
+
+<h2>Moderation</h2>
+<pre><span class="d">$</span> curl -X POST -H "Authorization: Bearer $TOKEN" https://bench.example.com/api/results/&lt;id&gt;/hide</pre>
+<p>This takes a result off the leaderboard. The result page itself stays online. Hidden ids are kept in <code>hidden.txt</code> in the data directory, so a backup of that directory is a backup of everything.</p>
 {{end}}

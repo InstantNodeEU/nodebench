@@ -17,78 +17,41 @@
 <meta name="twitter:card" content="summary_large_image">
 <meta name="theme-color" content="#060606">
 <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
-<link rel="preload" href="/static/inter.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/static/site.css?v={{.CSSVer}}">
 </head>
-<body class="p-{{.Name}}">
-<header class="hdr">
-	<div class="frame">
-		<a class="brand" href="/"><img src="/static/mark.svg" alt="" width="22" height="21">nodebench</a>
-		<nav class="nav" aria-label="Main">
-			<a href="/docs"{{if eq .Name "docs"}} aria-current="page"{{end}}>How it works</a>
-			<a href="/locations"{{if eq .Name "locations"}} aria-current="page"{{end}}>Locations</a>
-			<a href="/leaderboard"{{if eq .Name "leaderboard"}} aria-current="page"{{end}}>Leaderboard</a>
-			<a href="/self-host"{{if eq .Name "selfhost"}} aria-current="page"{{end}}>Self-host</a>
-		</nav>
-		<div class="hdr-end">
-			<a class="btn btn-ghost btn-sm gh" href="https://github.com/instantnode/nodebench">GitHub</a>
-			<details class="mnav">
-				<summary aria-label="Menu">{{template "i-menu"}}</summary>
-				<div class="mnav-panel">
-					<a href="/">Home</a>
-					<a href="/docs">How it works</a>
-					<a href="/locations">Locations</a>
-					<a href="/leaderboard">Leaderboard</a>
-					<a href="/self-host">Self-host</a>
-					<a href="/privacy">Privacy</a>
-					<a href="https://github.com/instantnode/nodebench">GitHub</a>
-				</div>
-			</details>
-		</div>
-	</div>
+<body>
+<div class="page{{if or (eq .Name "result") (eq .Name "leaderboard")}} wide{{end}}">
+<header class="top">
+	<a class="name" href="/">nodebench</a>
+	<nav aria-label="Main">
+		<a href="/docs"{{if eq .Name "docs"}} aria-current="page"{{end}}>docs</a>
+		<a href="/locations"{{if eq .Name "locations"}} aria-current="page"{{end}}>locations</a>
+		<a href="/leaderboard"{{if eq .Name "leaderboard"}} aria-current="page"{{end}}>leaderboard</a>
+		<a href="/self-host"{{if eq .Name "selfhost"}} aria-current="page"{{end}}>self-host</a>
+		<a href="https://github.com/instantnode/nodebench">source</a>
+	</nav>
 </header>
 
 <main>
 {{template "main" .}}
 </main>
 
-<footer class="ftr">
-	<div class="frame">
-		<div class="ftr-grid">
-			<div class="ftr-brand">
-				<a class="brand" href="/"><img src="/static/mark.svg" alt="" width="22" height="21">nodebench</a>
-				<p>Open source server benchmark. Free to use, MIT licensed, made and hosted by InstantNode.</p>
-			</div>
-			<div class="ftr-col">
-				<h4>nodebench</h4>
-				<a href="/docs">How it works</a>
-				<a href="/locations">Test locations</a>
-				<a href="/leaderboard">Leaderboard</a>
-			</div>
-			<div class="ftr-col">
-				<h4>Project</h4>
-				<a href="https://github.com/instantnode/nodebench">Source code</a>
-				<a href="/self-host">Self-host</a>
-				<a href="/privacy">Privacy</a>
-			</div>
-		</div>
-		<div class="ftr-legal">
-			<a class="by" href="https://instantnode.eu"><img src="/static/instantnode.png" alt="InstantNode" width="85" height="22"></a>
-			<span>Game servers, VPS and web hosting from the Netherlands. <a href="https://instantnode.eu">instantnode.eu</a></span>
-		</div>
-	</div>
+<footer>
+	nodebench is MIT licensed and run by <a href="https://instantnode.eu">InstantNode</a> from Eygelshoven, NL. <a href="/privacy">Privacy</a>.
 </footer>
+</div>
 <script src="/static/map.js?v={{.CSSVer}}" defer></script>
 <script>
 document.querySelectorAll("[data-copy]").forEach(function (b) {
-	b.addEventListener("click", function () {
+	b.addEventListener("click", function (e) {
+		e.preventDefault();
 		var src = document.getElementById(b.dataset.copy);
 		var text = src ? src.textContent : b.dataset.copy;
-		var label = b.innerHTML;
+		var label = b.textContent;
 		navigator.clipboard.writeText(text).then(function () {
-			b.textContent = b.dataset.done || "Copied";
+			b.textContent = "copied";
 			b.classList.add("done");
-			setTimeout(function () { b.innerHTML = label; b.classList.remove("done"); }, 1600);
+			setTimeout(function () { b.textContent = label; b.classList.remove("done"); }, 1500);
 		});
 	});
 });

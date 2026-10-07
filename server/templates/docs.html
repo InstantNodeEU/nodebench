@@ -1,92 +1,53 @@
 {{define "main"}}
-<div class="frame">
-	<section class="page-head">
-		<span class="head-ic">{{template "i-book"}}</span>
-		<h1 class="d2">How it works</h1>
-		<p class="lede">What nodebench runs, with which settings, and how to change them.</p>
-		<nav class="toc"><a href="#measures">What it measures</a><a href="#options">Options</a><a href="#leaderboard">Leaderboard</a><a href="#faq">FAQ</a></nav>
-	</section>
+<h1>How it works</h1>
+<p class="lead">What nodebench runs, with which settings, and how to change them.</p>
 
-	<section class="doc" id="measures">
-		<div class="doc-row">
-			<div class="doc-side"><span class="cell-ic">{{template "i-server"}}</span><h2>System</h2></div>
-			<div class="doc-body">
-				<p>CPU model, cores and clock, the AES-NI and VM-x flags, the virtualization type (from <code>systemd-detect-virt</code> with a few fallbacks), RAM, swap, disk size, distro, kernel and uptime. IPv4 and IPv6 connectivity is checked, and the provider name, ASN and country come from ipinfo.io.</p>
-			</div>
-		</div>
-		<div class="doc-row">
-			<div class="doc-side"><span class="cell-ic">{{template "i-cpu"}}</span><h2>CPU</h2></div>
-			<div class="doc-body">
-				<p><code>openssl speed</code> with sha256 and aes-256-gcm on 16 KiB blocks, once on a single thread and once with <code>-multi</code> on all cores. Each run takes 5 seconds.</p>
-				<p>It's not Geekbench, and that's on purpose: openssl is on nearly every server, the run is short, and the numbers are easy to compare. sha256 shows plain integer speed, aes-256-gcm shows how good the crypto extensions are. The ratio between the two thread counts tells you how well the cores scale, which on a busy shared host is often the most telling number.</p>
-				<p>During the run on all threads nodebench also reads the steal time from <code>/proc/stat</code>: the share of CPU time the hypervisor handed to other guests while yours wanted it. On a dedicated server or a well kept VPS it stays close to 0%. A few percent is normal on shared hosts, more than that means you're not getting the cores you see.</p>
-			</div>
-		</div>
-		<div class="doc-row">
-			<div class="doc-side"><span class="cell-ic">{{template "i-disk"}}</span><h2>Disk</h2></div>
-			<div class="doc-body">
-				<p>fio random read/write, 50/50 mix, with 4k, 64k, 512k and 1m blocks. iodepth 64, two jobs, O_DIRECT, 20 seconds per block size, on a 2 GB file in the current directory. These are the same parameters yabs uses, so results line up with what people already post.</p>
-				<p>4k is about IOPS, the small random access a database or a busy web server does. 1m is close to the raw throughput. If fio can't run at all, a sequential dd test is used instead and the result page says so.</p>
-				<p>The result also says what the test file sits on: the filesystem, and whether the device is NVMe, an SSD, a spinning disk or a virtual disk. Virtual disks always claim to be spinning, so nodebench doesn't guess what's behind them.</p>
-			</div>
-		</div>
-		<div class="doc-row">
-			<div class="doc-side"><span class="cell-ic">{{template "i-net"}}</span><h2>Network</h2></div>
-			<div class="doc-body">
-				<p>iperf3 in both directions with 8 parallel streams for 10 seconds, plus ping and packet loss, against {{.Data.Sites}} <a href="/locations">public test servers</a> (all {{.Data.Total}} with <code>-x</code>). Over IPv4, and IPv6 as well if the server has it. When a server is busy, up to three random ports from its range are tried.</p>
-				<p>If iperf3 can't connect anywhere, nodebench measures plain HTTP downloads instead. A direction that didn't work shows up as failed, not as zero.</p>
-			</div>
-		</div>
-	</section>
+<h2>System info</h2>
+<p>CPU model, cores and clock, the AES-NI and VM-x flags, the virtualization type (from <code>systemd-detect-virt</code> with a few fallbacks for LXC, OpenVZ and plain VMs), RAM, swap, disk size, distro, kernel and uptime. IPv4 and IPv6 are checked with a request to Cloudflare, and the provider name, ASN and country come from ipinfo.io.</p>
 
-	<section class="doc" id="options">
-		<div class="sec-head left">
-			<span class="k">Options</span>
-			<h2 class="d2">Skip what you don't need.</h2>
-			<p class="lede">Pass options after <code>bash -s --</code>:</p>
-		</div>
-		<div class="cmd wide"><code id="ex1">{{.OneLiner}} -s -- -n --no-share</code><button class="copy" type="button" data-copy="ex1">Copy</button></div>
-		<div class="sheet opts"><table>
-			<tbody>
-			<tr><td class="flag">-c</td><td class="desc">skip the cpu test</td></tr>
-			<tr><td class="flag">-s</td><td class="desc">skip the disk test</td></tr>
-			<tr><td class="flag">-n</td><td class="desc">skip the network test</td></tr>
-			<tr><td class="flag">-4, -6</td><td class="desc">network tests over IPv4 or IPv6 only</td></tr>
-			<tr><td class="flag">-d DIR</td><td class="desc">directory for the disk test file (default: current dir)</td></tr>
-			<tr><td class="flag">-S SIZE</td><td class="desc">size of the disk test file, e.g. 512M (default: 2G)</td></tr>
-			<tr><td class="flag">-t N</td><td class="desc">threads for the multi-core cpu test (default: all cores)</td></tr>
-			<tr><td class="flag">-l REGIONS</td><td class="desc">only test these network regions, comma separated: eu, na, sa, asia, oc</td></tr>
-			<tr><td class="flag">-x</td><td class="desc">test against all {{.Data.Total}} locations instead of the standard {{.Data.Sites}}</td></tr>
-			<tr><td class="flag">-q</td><td class="desc">quick run: shorter tests and a 512M disk file. Good for a first look, not ranked on the leaderboard</td></tr>
-			<tr><td class="flag">-L [NAME]</td><td class="desc">put the result on the leaderboard, optionally under a name of your choice</td></tr>
-			<tr><td class="flag">--no-share</td><td class="desc">don't upload the result</td></tr>
-			<tr><td class="flag">--json</td><td class="desc">print the result as json, the share link goes to stderr</td></tr>
-			</tbody>
-		</table></div>
-		<p class="note">The test lengths can be shortened with <code>NODEBENCH_FIO_TIME</code>, <code>NODEBENCH_IPERF_TIME</code> and <code>NODEBENCH_CPU_TIME</code> (seconds). <code>NODEBENCH_URL</code> points the upload at your own server.</p>
-	</section>
+<h2>CPU</h2>
+<p><code>openssl speed</code> with sha256 and aes-256-gcm on 16 KiB blocks, once on a single thread and once with <code>-multi</code> on all cores, 5 seconds each. It's not Geekbench, and that's on purpose: openssl is on nearly every server, the run is short and the numbers are easy to compare. sha256 is plain integer work, aes-256-gcm shows how good the crypto extensions are.</p>
+<p>The ratio between one and all threads tells you how well the cores scale. During the run on all threads nodebench also reads the steal time from <code>/proc/stat</code>: the share of CPU time the hypervisor handed to other guests while this one wanted it. On a dedicated server or a well kept VPS it stays close to 0%. A few percent is normal on shared hosts. More than that means you're not getting the cores you see.</p>
 
-	<section class="doc" id="leaderboard">
-		<div class="doc-row">
-			<div class="doc-side"><span class="cell-ic">{{template "i-trophy"}}</span><h2>Leaderboard</h2></div>
-			<div class="doc-body">
-				<p>Results only show up on the <a href="/leaderboard">leaderboard</a> if you ask for it with <code>-L</code>. Without a name the provider name is used, or pass one: <code>-L "fra-edge-01"</code>. Names are up to 32 characters, no links.</p>
-				<div class="cmd wide"><code id="ex2">{{.OneLiner}} -s -- -L "my box"</code><button class="copy" type="button" data-copy="ex2">Copy</button></div>
-				<p>Only the best run per name, CPU model and network is listed, so running it twenty times doesn't fill the page. Results with numbers no real hardware produces are kept as shareable links but never ranked.</p>
-			</div>
-		</div>
-	</section>
+<h2>Disk</h2>
+<p>fio random read/write, 50/50 mix, with 4k, 64k, 512k and 1m blocks, iodepth 64, two jobs, O_DIRECT, 20 seconds per block size, on a 2 GB file in the current directory. These are the parameters yabs uses. 4k is about IOPS, the small random access a database does. 1m is close to raw throughput. If fio can't run at all, a sequential dd test is used and the result says so.</p>
+<p>The result also notes the filesystem and what kind of device the file sits on: NVMe, SSD, spinning disk or a virtual disk. Virtual disks always report themselves as spinning, so nodebench doesn't guess what's behind them.</p>
 
-	<section class="doc" id="faq">
-		<div class="sec-head left"><span class="k">FAQ</span><h2 class="d2">Questions</h2></div>
-		<div class="faq">
-			<details><summary>Does it need root?</summary><p>No. Everything runs as the user you start it as. The disk test needs write access to the directory it runs in, use <code>-d</code> to pick another one.</p></details>
-			<details><summary>What does it leave behind?</summary><p>Nothing. The fio and iperf3 builds go into a temp directory that is removed on exit, also when you press Ctrl+C. The disk test file is deleted as well.</p></details>
-			<details><summary>Can I trust the downloaded binaries?</summary><p>They are the static builds published by the yabs project, pinned to one release. If <code>sha256sum</code> is available, each binary is checked against the checksum file from that release and not run if it doesn't match. The script prefers fio and iperf3 from your system when they are installed.</p></details>
-			<details><summary>How much traffic does it use?</summary><p>Mostly the iperf3 tests: on a 1 Gbit/s port up to about 1.2 GB per location and direction, so around 30 GB for a standard run over IPv4, twice that with IPv6. <code>-l eu</code> keeps it to Europe, <code>-q</code> cuts the test time to 4 seconds. Use <code>-n</code> on metered connections, or shorten the runs with <code>NODEBENCH_IPERF_TIME</code>.</p></details>
-			<details><summary>Why are my disk numbers so different from dd?</summary><p>dd writes one big sequential file through the page cache. fio with O_DIRECT and random access at queue depth 64 shows what the storage does under real load, which is usually a lot less.</p></details>
-			<details><summary>Can I get a result deleted?</summary><p>Yes, see <a href="/privacy">privacy</a>.</p></details>
-		</div>
-	</section>
-</div>
+<h2>Network</h2>
+<p>iperf3 in both directions with 8 parallel streams for 10 seconds, plus ping and packet loss, against {{.Data.Sites}} public servers (<a href="/locations">list</a>), or all {{.Data.Total}} with <code>-x</code>. Over IPv4, and IPv6 as well when the server has it. A busy server gets up to three tries on random ports from its range. A direction that still fails is shown as failed, not as zero. If iperf3 can't connect anywhere, plain HTTP downloads are measured instead.</p>
+
+<h2>Options</h2>
+<p>Pass them after <code>bash -s --</code>:</p>
+<div class="cmd"><code id="ex1">{{.OneLiner}} -s -- -n --no-share</code><button class="copy" type="button" data-copy="ex1">copy</button></div>
+<dl class="opts">
+	<dt>-c</dt><dd>skip the cpu test</dd>
+	<dt>-s</dt><dd>skip the disk test</dd>
+	<dt>-n</dt><dd>skip the network test</dd>
+	<dt>-4, -6</dt><dd>network tests over IPv4 or IPv6 only</dd>
+	<dt>-l REGIONS</dt><dd>only test these regions, comma separated: eu, na, sa, asia, oc</dd>
+	<dt>-x</dt><dd>test against all {{.Data.Total}} locations instead of the standard {{.Data.Sites}}</dd>
+	<dt>-q</dt><dd>quick run: 2 second cpu, 5 second disk and 4 second network tests on a 512M file. Good for a first look, not ranked on the leaderboard</dd>
+	<dt>-d DIR</dt><dd>directory for the disk test file (default: current directory)</dd>
+	<dt>-S SIZE</dt><dd>size of the disk test file, e.g. 512M (default: 2G)</dd>
+	<dt>-t N</dt><dd>threads for the multi-core cpu test (default: all cores)</dd>
+	<dt>-L [NAME]</dt><dd>put the result on the leaderboard, optionally under a name</dd>
+	<dt>--no-share</dt><dd>don't upload the result</dd>
+	<dt>--json</dt><dd>print the result as json, the share link goes to stderr</dd>
+</dl>
+<p>Environment: <code>NODEBENCH_FIO_TIME</code>, <code>NODEBENCH_IPERF_TIME</code> and <code>NODEBENCH_CPU_TIME</code> set the test lengths in seconds, <code>NODEBENCH_URL</code> points the upload at your own server, <code>NO_COLOR</code> turns colors off.</p>
+
+<h2 id="leaderboard">Leaderboard</h2>
+<p>Results only show up on the <a href="/leaderboard">leaderboard</a> with <code>-L</code>. Without a name the provider name is used, or pass one: <code>-L "fra-edge-01"</code>. Names are up to 32 characters, no links. Only the best run per name, CPU model and network is listed, quick runs aren't ranked, and results with numbers no real hardware produces stay shareable but don't rank either.</p>
+
+<h2 id="faq">Questions</h2>
+<h3>What does it leave behind?</h3>
+<p>Nothing. The fio and iperf3 builds go into a temp directory that is removed on exit, also on Ctrl+C. The disk test file is deleted as well.</p>
+<h3>Can I trust the downloaded binaries?</h3>
+<p>They are the static builds published by the yabs project, pinned to one release. When <code>sha256sum</code> is available, each binary is checked against the checksum file of that release and not run if it doesn't match. fio and iperf3 from your system are used first if they're installed.</p>
+<h3>How much traffic does it use?</h3>
+<p>Mostly the iperf3 tests: on a gigabit port up to about 1.2 GB per location and direction, so around 30 GB for a standard run over IPv4 and twice that with IPv6. <code>-l eu</code> keeps it to Europe, <code>-q</code> cuts each network test to 4 seconds.</p>
+<h3>Why are my disk numbers so far from dd?</h3>
+<p>dd writes one big sequential file, often through the page cache. fio with O_DIRECT and random access at queue depth 64 shows what the storage does under load, which is usually a lot less.</p>
+<h3>Can I get a result deleted?</h3>
+<p>Yes, see <a href="/privacy">privacy</a>.</p>
 {{end}}
