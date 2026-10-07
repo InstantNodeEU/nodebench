@@ -249,7 +249,7 @@ code, pre, kbd, .mono { font-family: var(--mono); font-variant-ligatures: none; 
 
 .show { padding: 0 var(--pad); }
 .term {
-	max-width: 1000px;
+	max-width: 880px;
 	margin: 0 auto;
 	border-radius: 16px;
 	overflow: hidden;
@@ -355,7 +355,10 @@ table.spec { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 .spec td.barc { width: 34%; min-width: 120px; padding-top: 19px; }
 .spec.compact td { padding-top: 13px; padding-bottom: 13px; }
 @media (max-width: 620px) {
-	.spec th, .spec td { padding: 13px 16px; }
+	table.spec { font-size: 13.5px; }
+	.spec th, .spec td { padding: 13px 12px 13px 16px; }
+	.spec th { font-size: 10px; letter-spacing: 0.08em; }
+	.spec .sub { font-size: 12px; }
 	.spec th + th, .spec td + td { padding-left: 0; }
 	.spec td.barc { min-width: 90px; padding-top: 17px; }
 	.spec .hide-s { display: none; }
