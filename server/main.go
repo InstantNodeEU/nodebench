@@ -21,6 +21,9 @@ var templateFS embed.FS
 //go:embed fonts/*.ttf
 var fontFS embed.FS
 
+//go:embed static
+var staticFS embed.FS
+
 var (
 	listen  = flag.String("listen", env("NODEBENCH_LISTEN", ":8080"), "listen address")
 	dataDir = flag.String("data", env("NODEBENCH_DATA", "./data"), "directory for stored results")
@@ -28,6 +31,7 @@ var (
 	script  = flag.String("script", env("NODEBENCH_SCRIPT", "../nodebench.sh"), "path to nodebench.sh, served to curl and wget")
 	proxied = flag.Bool("proxy", env("NODEBENCH_PROXY", "") != "", "trust X-Forwarded-For (only behind a reverse proxy)")
 	perHour = flag.Int("rate", 20, "max uploads per ip per hour")
+	example = flag.String("example", env("NODEBENCH_EXAMPLE", ""), "result id linked from the landing page")
 )
 
 func env(key, def string) string {
@@ -83,10 +87,9 @@ func main() {
 	mux.HandleFunc("GET /{$}", s.handleIndex)
 	mux.HandleFunc("POST /api/results", s.handleUpload)
 	mux.HandleFunc("GET /r/{id}", s.handleResult)
-	mux.HandleFunc("GET /fonts/", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Cache-Control", "public, max-age=2592000")
-		http.FileServerFS(fontFS).ServeHTTP(w, r)
-	})
+	mux.Handle("GET /fonts/", longCache(http.FileServerFS(fontFS)))
+	mux.Handle("GET /static/", longCache(http.FileServerFS(staticFS)))
+	mux.Handle("GET /favicon.ico", http.RedirectHandler("/static/favicon.svg", http.StatusMovedPermanently))
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok\n") })
 
 	srv := &http.Server{
@@ -119,7 +122,13 @@ func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err := s.index.Execute(w, map[string]any{"CSS": s.css, "OneLiner": s.oneLiner()})
+	var ex string
+	if *example != "" {
+		if _, err := s.store.Load(*example); err == nil {
+			ex = *example
+		}
+	}
+	err := s.index.Execute(w, map[string]any{"CSS": s.css, "OneLiner": s.oneLiner(), "Base": *baseURL, "Example": ex})
 	if err != nil {
 		log.Printf("index: %v", err)
 	}
@@ -187,6 +196,13 @@ func (s *server) handleResult(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func longCache(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "public, max-age=2592000")
+		h.ServeHTTP(w, r)
+	})
 }
 
 func jsonError(w http.ResponseWriter, code int, msg string) {

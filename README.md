@@ -77,6 +77,7 @@ docker run -d -p 8080:8080 -v nodebench:/data -e NODEBENCH_BASE=https://bench.ex
 | `-script` | `NODEBENCH_SCRIPT` | `../nodebench.sh` | script served to curl and wget on `/` |
 | `-proxy` | `NODEBENCH_PROXY` | off | trust `X-Forwarded-For`, only behind a reverse proxy |
 | `-rate` | | `20` | uploads per IP per hour |
+| `-example` | `NODEBENCH_EXAMPLE` | | result id the landing page links to as an example |
 
 `/` serves the script itself when the client is curl or wget, everyone else gets a small landing page. A systemd unit is in `deploy/`. Point the script at your server with `NODEBENCH_URL=https://bench.example.com`.
 
@@ -98,3 +99,5 @@ The share pages use [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
 ## License
 
 MIT, made by [InstantNode](https://instantnode.eu).
+
+The web pages use JetBrains Mono (OFL, see `server/fonts/OFL.txt`) and Satoshi by the Indian Type Foundry, from Fontshare under the ITF Free Font License.
