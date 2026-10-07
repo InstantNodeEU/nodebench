@@ -81,19 +81,32 @@ func renderCard(w io.Writer, r *Result) error {
 	text(img, f.title, colText, pad, 190, fit(f.title, shortCPU(r.System.CPU), cardW-2*pad))
 	text(img, f.spec, colDim, pad, 238, fit(f.spec, specLine(r), cardW-2*pad))
 
-	type tile struct{ label, value, sub string }
-	tiles := []tile{{"CPU SHA256", "skipped", ""}, {"DISK 4K RANDOM", "skipped", ""}, {"BEST DOWNLOAD", "skipped", ""}}
+	type tile struct {
+		label, value, sub string
+		bars              []float64
+	}
+	tiles := []tile{{label: "CPU SHA256", value: "skipped"}, {label: "DISK 4K RANDOM", value: "skipped"}, {label: "BEST DOWNLOAD", value: "skipped"}}
 	if c := r.CPU; c != nil {
-		tiles[0] = tile{"CPU SHA256", fmtBytes(c.SHA256N), plural(c.Threads, "thread")}
+		tiles[0] = tile{"CPU SHA256", fmtBytes(c.SHA256N), plural(c.Threads, "thread"), []float64{c.SHA256, c.SHA256N}}
 	}
 	if t := disk4k(r); t != nil {
-		tiles[1] = tile{"DISK " + strings.ToUpper(t.BS) + " RANDOM", fmtKBs(t.ReadKBs + t.WriteKBs), fmtIOPS(t.ReadIOPS+t.WriteIOPS) + " IOPS"}
+		var bs []float64
+		for _, d := range r.Disk.Tests {
+			bs = append(bs, d.ReadKBs+d.WriteKBs)
+		}
+		tiles[1] = tile{"DISK " + strings.ToUpper(t.BS) + " RANDOM", fmtKBs(t.ReadKBs + t.WriteKBs), fmtIOPS(t.ReadIOPS+t.WriteIOPS) + " IOPS", bs}
 	}
 	if t := bestNet(r); t != nil {
-		tiles[2] = tile{"BEST DOWNLOAD", fmtMbps(t.Recv), t.Location}
+		var bs []float64
+		for _, n := range r.Net.Tests {
+			if n.Proto == 4 {
+				bs = append(bs, n.Recv)
+			}
+		}
+		tiles[2] = tile{"BEST DOWNLOAD", fmtMbps(t.Recv), t.Location, bs}
 	}
 
-	const top, h, gap = 290, 180, 20
+	const top, h, gap = 286, 222, 20
 	tw := (cardW - 2*pad - 2*gap) / 3
 	for i, t := range tiles {
 		x0 := pad + i*(tw+gap)
@@ -107,6 +120,7 @@ func renderCard(w io.Writer, r *Result) error {
 		}
 		text(img, f.value, vc, x0+24, top+108, fit(f.value, t.value, tw-48))
 		text(img, f.small, colDim, x0+24, top+150, fit(f.small, t.sub, tw-48))
+		sparkBars(img, image.Rect(x0+24, top+170, x0+tw-24, top+200), t.bars)
 	}
 
 	fill(img, image.Rect(pad, 540, cardW-pad, 541), colLine)
@@ -116,6 +130,36 @@ func renderCard(w io.Writer, r *Result) error {
 
 	enc := png.Encoder{CompressionLevel: png.BestSpeed}
 	return enc.Encode(w, img)
+}
+
+// sparkBars draws small columns scaled to the largest value; the largest
+// one is in the accent colour. Zero values (failed tests) stay as a stub.
+func sparkBars(img *image.RGBA, box image.Rectangle, v []float64) {
+	if len(v) == 0 {
+		return
+	}
+	var top float64
+	for _, x := range v {
+		top = max(top, x)
+	}
+	if top <= 0 {
+		return
+	}
+	const gap = 6
+	w := (box.Dx() - gap*(len(v)-1)) / len(v)
+	w = min(w, 40)
+	for i, x := range v {
+		h := int(float64(box.Dy()) * x / top)
+		h = max(h, 2)
+		c := colLine
+		if x == top {
+			c = colAccent
+		} else if x > 0 {
+			c = color.RGBA{0x3a, 0x3a, 0x40, 0xff}
+		}
+		x0 := box.Min.X + i*(w+gap)
+		fill(img, image.Rect(x0, box.Max.Y-h, x0+w, box.Max.Y), c)
+	}
 }
 
 // mark draws the logo bars with their baseline at y.
