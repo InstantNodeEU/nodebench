@@ -3,22 +3,23 @@
 	<section class="page-head">
 		<span class="head-ic">{{template "i-globe"}}</span>
 		<h1 class="d2">Test locations</h1>
-		<p class="lede">Every run tests upload, download and ping against the same public iperf3 servers, so network numbers mean the same thing from one result to the next.</p>
+		<p class="lede">Every run tests upload, download and ping against the same {{.Data.Standard}} public iperf3 servers, so network numbers mean the same thing from one result to the next. Add <code>-x</code> for all {{.Data.Total}}, or pick regions with <code>-l</code>.</p>
 	</section>
 
 	<div class="map-card big">{{.Data.Map}}
-		<div class="map-key"><span class="ours">InstantNode</span><span class="plain">Public iperf3 server</span></div>
+		<div class="map-key"><span class="ours">InstantNode</span><span class="plain">Standard</span><span class="ext">Only with -x</span></div>
 	</div>
 
 	<div class="sheet loc-table"><table>
-		<thead><tr><th>Location</th><th>Network</th><th>Host</th><th>Ports</th></tr></thead>
+		<thead><tr><th>Location</th><th>Network</th><th>Region</th><th>Host</th><th>Runs</th></tr></thead>
 		<tbody>
 		{{range .Data.Sites}}
 		<tr{{if .Ours}} class="ours"{{end}}>
 			<td><span class="loc-ic">{{template "i-pin"}}</span>{{.Location}}</td>
 			<td class="txt">{{.Provider}}{{if .Ours}} <span class="tag">ours</span>{{end}}</td>
-			<td class="host">{{.Host}}</td>
-			<td>{{.Ports}}</td>
+			<td class="txt">{{index $.Data.Regions .Region}} <span class="sub">-l {{.Region}}</span></td>
+			<td class="host">{{.Host}}<span class="sub">ports {{.Ports}}</span></td>
+			<td class="txt">{{if .Extended}}<span class="dim">with -x</span>{{else}}always{{end}}</td>
 		</tr>
 		{{end}}
 		</tbody>
@@ -28,12 +29,12 @@
 		<div class="cell">
 			<span class="cell-ic">{{template "i-server"}}</span>
 			<h3>Why Eygelshoven comes first</h3>
-			<p>It's InstantNode's own network in the Netherlands, right next to Amsterdam and Frankfurt. We run nodebench, so we test against our own looking glass first. It's an ordinary location in the results and gets no special treatment.</p>
+			<p>It's InstantNode's own network in the Netherlands, between Amsterdam and Frankfurt. We run nodebench, so we test against our own looking glass first. It's an ordinary location in the results and gets no special treatment.</p>
 		</div>
 		<div class="cell">
 			<span class="cell-ic">{{template "i-net"}}</span>
 			<h3>When a server doesn't answer</h3>
-			<p>Public iperf3 servers are shared and sometimes busy. nodebench tries up to three ports per server. If one direction still fails, the result shows it as failed instead of a misleading zero.</p>
+			<p>Public iperf3 servers are shared and sometimes busy. nodebench tries up to three ports per server. If one direction still fails, the result shows it as failed instead of a misleading zero. Every server on this list was checked to answer before it was added.</p>
 		</div>
 	</div>
 </div>

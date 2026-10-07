@@ -9,6 +9,8 @@ type resultView struct {
 	R   *Result
 	URL string
 
+	Took string
+
 	CPUChart  *cpuChart
 	DiskChart *diskChart
 	NetChart  *netChart
@@ -40,6 +42,9 @@ func (s *server) view(r *Result) resultView {
 		Uptime:    fmtUptime(sys.Uptime),
 	}
 	v.Specs = specLine(r)
+	if r.Duration > 0 {
+		v.Took = fmt.Sprintf("took %dm %02ds", r.Duration/60, r.Duration%60)
+	}
 
 	var sum []string
 	if c := r.CPU; c != nil {

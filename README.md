@@ -121,4 +121,4 @@ The share pages use [JetBrains Mono](https://github.com/JetBrains/JetBrainsMono)
 
 MIT, made by [InstantNode](https://instantnode.eu).
 
-The web pages use JetBrains Mono (OFL, see `server/fonts/OFL.txt`) and Satoshi by the Indian Type Foundry, from Fontshare under the ITF Free Font License.
+The web pages use JetBrains Mono (OFL, see `server/fonts/OFL.txt`) and Inter by Rasmus Andersson (OFL).

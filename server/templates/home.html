@@ -22,17 +22,17 @@
 			<div class="cell">
 				<span class="cell-ic">{{template "i-cpu"}}</span>
 				<h3>CPU</h3>
-				<p>openssl sha256 and aes-256-gcm, on one thread and on all of them, so you see both single-core speed and how well the cores scale.</p>
+				<p>openssl sha256 and aes-256-gcm on one thread and on all of them, plus the steal time a busy host takes from your cores while they work.</p>
 			</div>
 			<div class="cell">
 				<span class="cell-ic">{{template "i-disk"}}</span>
 				<h3>Disk</h3>
-				<p>fio random read/write at 4k, 64k, 512k and 1m with the same settings as yabs. Throughput and IOPS for each block size.</p>
+				<p>fio random read/write at 4k, 64k, 512k and 1m with the same settings as yabs, plus what the disk is: NVMe, SSD, HDD or a virtual disk.</p>
 			</div>
 			<div class="cell">
 				<span class="cell-ic">{{template "i-net"}}</span>
 				<h3>Network</h3>
-				<p>iperf3 upload and download plus ping against {{.Data.Sites}} public servers on four continents, over IPv4 and IPv6.</p>
+				<p>iperf3 upload and download, ping and packet loss against {{.Data.Sites}} public servers on five continents, over IPv4 and IPv6.</p>
 			</div>
 		</div>
 		<p class="more-link"><a href="/docs">Methodology and all options {{template "i-arrow"}}</a></p>
@@ -79,13 +79,14 @@
 		<div class="split">
 			<div class="txt">
 				<span class="k">Test locations</span>
-				<h2 class="d2">Four continents, {{.Data.Sites}} servers.</h2>
-				<p class="lede">Every run tests against the same public iperf3 servers, so the network numbers mean the same thing from one result to the next.</p>
+				<h2 class="d2">Five continents, {{.Data.Sites}} servers.</h2>
+				<p class="lede">Every run tests against the same public iperf3 servers, so the network numbers mean the same thing from one result to the next. {{.Data.Total}} with <code>-x</code>.</p>
 				<ul class="site-list">
 					<li class="ours"><span class="dot"></span>Eygelshoven, NL <em>InstantNode</em></li>
-					<li><span class="dot"></span>London, Amsterdam, Frankfurt</li>
-					<li><span class="dot"></span>New York, Los Angeles</li>
-					<li><span class="dot"></span>Singapore, Sao Paulo</li>
+					<li><span class="dot"></span>London, Amsterdam, Frankfurt, Paris</li>
+					<li><span class="dot"></span>New York, Dallas, Los Angeles</li>
+					<li><span class="dot"></span>Sao Paulo</li>
+					<li><span class="dot"></span>Singapore, Tokyo, Sydney</li>
 				</ul>
 				<div><a class="btn btn-ghost" href="/locations">All locations {{template "i-arrow"}}</a></div>
 			</div>

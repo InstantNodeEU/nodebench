@@ -36,8 +36,10 @@ type cpuRow struct {
 }
 
 type cpuChart struct {
-	Threads int
-	Rows    []cpuRow
+	Threads    int
+	Rows       []cpuRow
+	Steal      string
+	StealClass string
 }
 
 func newCPUChart(c *CPU) *cpuChart {
@@ -49,6 +51,17 @@ func newCPUChart(c *CPU) *cpuChart {
 		return nil
 	}
 	ch := &cpuChart{Threads: c.Threads}
+	if c.Threads > 1 && c.Steal >= 0 {
+		ch.Steal = fmt.Sprintf("%.1f%%", c.Steal)
+		switch {
+		case c.Steal < 1:
+			ch.StealClass = "near"
+		case c.Steal < 5:
+			ch.StealClass = "mid"
+		default:
+			ch.StealClass = "far"
+		}
+	}
 	for _, t := range []struct {
 		name string
 		s, m float64
@@ -74,6 +87,7 @@ type diskRow struct {
 
 type diskChart struct {
 	Tool, Size string
+	Device     string
 	Rows       []diskRow
 }
 
@@ -89,6 +103,15 @@ func newDiskChart(d *Disk) *diskChart {
 		return nil
 	}
 	ch := &diskChart{Tool: d.Tool, Size: d.Size}
+	media := map[string]string{"nvme": "NVMe", "ssd": "SSD", "hdd": "HDD", "virtual": "virtual disk"}[d.Media]
+	switch {
+	case media != "" && d.FS != "":
+		ch.Device = media + ", " + d.FS
+	case media != "":
+		ch.Device = media
+	case d.FS != "":
+		ch.Device = d.FS
+	}
 	for _, t := range d.Tests {
 		r := diskRow{
 			BS: t.BS, Read: fmtKBs(t.ReadKBs), Write: fmtKBs(t.WriteKBs), Total: fmtKBs(t.ReadKBs + t.WriteKBs),
@@ -109,6 +132,7 @@ type netRow struct {
 	SendFailed         bool
 	RecvFailed         bool
 	Ping, PingClass    string
+	Loss               string
 	SendT, RecvT       string
 }
 
@@ -158,6 +182,9 @@ func newNetChart(r *Result) *netChart {
 			SendFailed: t.Send <= 0, RecvFailed: t.Recv <= 0,
 			Ping: fmtPing(t.Ping), PingClass: pingClass(t.Ping),
 		}
+		if t.Loss > 0 {
+			row.Loss = fmt.Sprintf("%g%% loss", t.Loss)
+		}
 		if s := siteFor(t.Location); s != nil {
 			row.Ours = s.Ours
 		}
@@ -189,7 +216,8 @@ func newNetChart(r *Result) *netChart {
 func netMap(r *Result) template.HTML {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<svg class="map" viewBox="0 0 %.0f %.0f" role="img" aria-label="Map of the test locations">`, mapW, mapH)
-	fmt.Fprintf(&b, `<image href="/static/world.svg" width="%.0f" height="%.0f"/>`, mapW, mapH)
+	fmt.Fprintf(&b, `<image class="coarse" href="/static/world.svg" width="%.0f" height="%.0f"/>`, mapW, mapH)
+	fmt.Fprintf(&b, `<image class="fine" data-href="/static/world-fine.svg" width="%.0f" height="%.0f"/>`, mapW, mapH)
 
 	ping := map[string]float64{}
 	if r != nil && r.Net != nil {
@@ -217,9 +245,7 @@ func netMap(r *Result) template.HTML {
 		}
 	}
 
-	if r == nil {
-		b.WriteString(siteLabels())
-	}
+	b.WriteString(siteLabels(r == nil, func(loc string) bool { _, ok := ping[loc]; return r == nil || ok }))
 	for _, s := range sites {
 		x, y := project(s.Lon, s.Lat)
 		cls := "site"
@@ -229,6 +255,9 @@ func netMap(r *Result) template.HTML {
 			title += ", " + fmtPing(p)
 		} else if r != nil {
 			continue
+		}
+		if s.Extended {
+			cls += " ext"
 		}
 		if s.Ours {
 			cls += " ours"
@@ -240,26 +269,48 @@ func netMap(r *Result) template.HTML {
 	return template.HTML(b.String())
 }
 
-// siteLabels names the sites on the plain map. The European ones sit too
-// close together for their own labels, so they share one.
-func siteLabels() string {
+// siteLabels names the sites. The European ones sit too close together at
+// world scale, so they share a callout there and only get their own labels
+// once the map is zoomed in (the "zoom" ones, shown by the map script).
+// Label positions are stored as data so the script can keep them next to
+// their dot at any zoom level.
+func siteLabels(overview bool, shown func(string) bool) string {
 	var b strings.Builder
 	b.WriteString(`<g class="labels">`)
 	for _, s := range sites {
-		if s.Lon > -30 && s.Lon < 30 && s.Lat > 35 {
+		if !shown(s.Location) {
 			continue
 		}
 		x, y := project(s.Lon, s.Lat)
 		name, _, _ := strings.Cut(s.Location, ",")
 		anchor, dx := "start", 10.0
-		if s.Lon > 60 {
+		// west coast labels go left so they don't run into Dallas
+		if s.Lon > 60 || s.Lon < -110 {
 			anchor, dx = "end", -10
 		}
-		fmt.Fprintf(&b, `<text x="%.1f" y="%.1f" text-anchor="%s">%s</text>`, x+dx, y+4, anchor, template.HTMLEscapeString(name))
+		cls := "zoom"
+		if overview && !europe(s) && !s.Extended {
+			cls = "always"
+		}
+		if s.Ours {
+			cls += " ours"
+		}
+		fmt.Fprintf(&b, `<text class="%s" x="%.1f" y="%.1f" data-sx="%.1f" data-sy="%.1f" data-dx="%.0f" text-anchor="%s">%s</text>`,
+			cls, x+dx, y+4, x, y, dx, anchor, template.HTMLEscapeString(name))
 	}
-	x, y := project(4, 52)
-	fmt.Fprintf(&b, `<path class="lead" d="M%.1f %.1fL%.1f %.1fH%.1f"/><text x="%.1f" y="%.1f">Europe, 4 sites</text><text class="ours" x="%.1f" y="%.1f">incl. InstantNode NL</text>`,
-		x, y-8, x+18, y-38, x+30, x+34, y-41, x+34, y-27)
+	if overview {
+		n := 0
+		for _, s := range sites {
+			if europe(s) {
+				n++
+			}
+		}
+		x, y := project(4, 52)
+		fmt.Fprintf(&b, `<g class="callout"><path class="lead" d="M%.1f %.1fL%.1f %.1fH%.1f"/><text x="%.1f" y="%.1f">Europe, %d sites</text><text class="ours" x="%.1f" y="%.1f">incl. InstantNode NL</text></g>`,
+			x, y-8, x+18, y-38, x+30, x+34, y-41, n, x+34, y-27)
+	}
 	b.WriteString(`</g>`)
 	return b.String()
 }
+
+func europe(s site) bool { return s.Lon > -30 && s.Lon < 30 && s.Lat > 35 }

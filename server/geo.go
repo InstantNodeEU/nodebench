@@ -10,20 +10,45 @@ import (
 // IPERF_SERVERS in nodebench.sh.
 type site struct {
 	Location, Provider, Host, Ports string
+	Region                          string
 	Lon, Lat                        float64
 	Ours                            bool
+	// Extended sites only run with -x
+	Extended bool
 }
 
 var sites = []site{
-	{"Eygelshoven, NL", "InstantNode", "lg.instantnode.eu", "5201", 6.06, 50.89, true},
-	{"London, UK", "Clouvider", "lon.speedtest.clouvider.net", "5200-5209", -0.13, 51.51, false},
-	{"Amsterdam, NL", "Eranium", "iperf-ams-nl.eranium.net", "5201-5210", 4.9, 52.37, false},
-	{"Frankfurt, DE", "Leaseweb", "speedtest.fra1.de.leaseweb.net", "5201-5210", 8.68, 50.11, false},
-	{"New York, US", "Leaseweb", "speedtest.nyc1.us.leaseweb.net", "5201-5210", -74.0, 40.71, false},
-	{"Los Angeles, US", "Clouvider", "la.speedtest.clouvider.net", "5200-5209", -118.24, 34.05, false},
-	{"Singapore, SG", "Leaseweb", "speedtest.sin1.sg.leaseweb.net", "5201-5210", 103.82, 1.35, false},
-	{"Sao Paulo, BR", "Edgoo", "speedtest.sao1.edgoo.net", "9204-9240", -46.63, -23.55, false},
+	{"Eygelshoven, NL", "InstantNode", "lg.instantnode.eu", "5201", "eu", 6.06, 50.89, true, false},
+	{"London, UK", "Clouvider", "lon.speedtest.clouvider.net", "5200-5209", "eu", -0.13, 51.51, false, false},
+	{"Amsterdam, NL", "Eranium", "iperf-ams-nl.eranium.net", "5201-5210", "eu", 4.9, 52.37, false, false},
+	{"Frankfurt, DE", "Leaseweb", "speedtest.fra1.de.leaseweb.net", "5201-5210", "eu", 8.68, 50.11, false, false},
+	{"Paris, FR", "Moji", "iperf3.moji.fr", "5200-5240", "eu", 2.35, 48.86, false, false},
+	{"Hamburg, DE", "wilhelm.tel", "speedtest.wtnet.de", "5200-5209", "eu", 9.99, 53.55, false, true},
+	{"New York, US", "Leaseweb", "speedtest.nyc1.us.leaseweb.net", "5201-5210", "na", -74.0, 40.71, false, false},
+	{"Chicago, US", "Leaseweb", "speedtest.chi11.us.leaseweb.net", "5201-5210", "na", -87.63, 41.88, false, true},
+	{"Miami, US", "Leaseweb", "speedtest.mia11.us.leaseweb.net", "5201-5210", "na", -80.19, 25.76, false, true},
+	{"Montreal, CA", "Leaseweb", "speedtest.mtl2.ca.leaseweb.net", "5201-5210", "na", -73.57, 45.5, false, true},
+	{"Dallas, US", "Leaseweb", "speedtest.dal13.us.leaseweb.net", "5201-5210", "na", -96.8, 32.78, false, false},
+	{"Los Angeles, US", "Clouvider", "la.speedtest.clouvider.net", "5200-5209", "na", -118.24, 34.05, false, false},
+	{"Sao Paulo, BR", "Edgoo", "speedtest.sao1.edgoo.net", "9204-9240", "sa", -46.63, -23.55, false, false},
+	{"Singapore, SG", "Leaseweb", "speedtest.sin1.sg.leaseweb.net", "5201-5210", "asia", 103.82, 1.35, false, false},
+	{"Hong Kong, HK", "Leaseweb", "speedtest.hkg12.hk.leaseweb.net", "5201-5210", "asia", 114.17, 22.32, false, true},
+	{"Tokyo, JP", "Leaseweb", "speedtest.tyo11.jp.leaseweb.net", "5201-5210", "asia", 139.69, 35.69, false, false},
+	{"Sydney, AU", "Leaseweb", "speedtest.syd12.au.leaseweb.net", "5201-5210", "oc", 151.21, -33.87, false, false},
 }
+
+// standardSites counts the sites a normal run tests against.
+func standardSites() int {
+	n := 0
+	for _, s := range sites {
+		if !s.Extended {
+			n++
+		}
+	}
+	return n
+}
+
+var regionNames = map[string]string{"eu": "Europe", "na": "North America", "sa": "South America", "asia": "Asia", "oc": "Oceania"}
 
 func siteFor(location string) *site {
 	for i := range sites {
@@ -58,6 +83,8 @@ const (
 	mapTop, mapBot  = 80.0, -58.0
 	mapH            = (mapTop - mapBot) * mapW / 360
 	mapDot, mapStep = 1.7, 3.0
+	// the zoomed in layer: a finer grid, only loaded once someone zooms
+	fineDot, fineStep = 0.75, 1.25
 )
 
 func project(lon, lat float64) (x, y float64) {
@@ -112,14 +139,14 @@ func onLand(lon, lat float64) bool {
 
 // worldSVG draws the dotted base map once at start; it's served as a
 // static file and pulled into the charts with <image>.
-func worldSVG() []byte {
+func worldSVG(step, dot float64) []byte {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %.0f %.0f"><path fill="#2c2c31" d="`, mapW, mapH)
-	for lat := mapTop - mapStep/2; lat > mapBot; lat -= mapStep {
-		for lon := -180 + mapStep/2; lon < 180; lon += mapStep {
+	for lat := mapTop - step/2; lat > mapBot; lat -= step {
+		for lon := -180 + step/2; lon < 180; lon += step {
 			if onLand(lon, lat) {
 				x, y := project(lon, lat)
-				fmt.Fprintf(&b, "M%.1f %.1fh%.1fv%.1fh-%.1fz", x-mapDot/2, y-mapDot/2, mapDot, mapDot, mapDot)
+				fmt.Fprintf(&b, "M%.2f %.2fh%.2fv%.2fh-%.2fz", x-dot/2, y-dot/2, dot, dot, dot)
 			}
 		}
 	}

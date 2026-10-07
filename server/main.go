@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"compress/gzip"
 	"embed"
 	"encoding/json"
 	"flag"
@@ -51,6 +53,7 @@ type server struct {
 	pages   map[string]*template.Template
 	cssVer  string
 	world   []byte
+	fine    []byte
 	limiter *limiter
 }
 
@@ -65,7 +68,8 @@ func main() {
 	s := &server{
 		store:   &Store{dir: *dataDir},
 		board:   newBoard(*dataDir),
-		world:   worldSVG(),
+		world:   worldSVG(mapStep, mapDot),
+		fine:    gzipped(worldSVG(fineStep, fineDot)),
 		limiter: newLimiter(*perHour, time.Hour),
 	}
 	s.loadTemplates()
@@ -91,6 +95,20 @@ func main() {
 		w.Header().Set("Content-Type", "image/svg+xml")
 		w.Header().Set("Cache-Control", "public, max-age=2592000")
 		w.Write(s.world)
+	})
+	mux.HandleFunc("GET /static/world-fine.svg", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "image/svg+xml")
+		w.Header().Set("Cache-Control", "public, max-age=2592000")
+		w.Header().Set("Vary", "Accept-Encoding")
+		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Write(s.fine)
+			return
+		}
+		zr, err := gzip.NewReader(bytes.NewReader(s.fine))
+		if err == nil {
+			io.Copy(w, zr)
+		}
 	})
 	mux.Handle("GET /static/", longCache(http.FileServerFS(staticFS)))
 	mux.Handle("GET /favicon.ico", http.RedirectHandler("/static/favicon.svg", http.StatusMovedPermanently))
@@ -193,6 +211,14 @@ func (s *server) handleResult(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.NotFound(w, r)
 	}
+}
+
+func gzipped(b []byte) []byte {
+	var buf bytes.Buffer
+	zw, _ := gzip.NewWriterLevel(&buf, gzip.BestCompression)
+	zw.Write(b)
+	zw.Close()
+	return buf.Bytes()
 }
 
 func longCache(h http.Handler) http.Handler {

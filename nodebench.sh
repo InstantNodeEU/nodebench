@@ -9,7 +9,7 @@
 # Needs bash 4 and curl. No root, nothing gets installed. fio and iperf3 are
 # fetched into a temp dir if they are missing and removed again at the end.
 
-VERSION="1.0.0"
+VERSION="1.1.0"
 NODEBENCH_URL="${NODEBENCH_URL:-https://bench.instantnode.eu}"
 
 # static fio/iperf3 builds published by the yabs project
@@ -17,16 +17,26 @@ BIN_URL="https://github.com/masonr/yet-another-bench-script/releases/download"
 FIO_TAG="fio-3.43"
 IPERF_TAG="iperf3-3.22"
 
-# host|port range|provider|location
+# host|port range|provider|location|region, an x after the region means the
+# server only runs with -x
 IPERF_SERVERS=(
-	"lg.instantnode.eu|5201|InstantNode|Eygelshoven, NL"
-	"lon.speedtest.clouvider.net|5200-5209|Clouvider|London, UK"
-	"iperf-ams-nl.eranium.net|5201-5210|Eranium|Amsterdam, NL"
-	"speedtest.fra1.de.leaseweb.net|5201-5210|Leaseweb|Frankfurt, DE"
-	"speedtest.nyc1.us.leaseweb.net|5201-5210|Leaseweb|New York, US"
-	"la.speedtest.clouvider.net|5200-5209|Clouvider|Los Angeles, US"
-	"speedtest.sin1.sg.leaseweb.net|5201-5210|Leaseweb|Singapore, SG"
-	"speedtest.sao1.edgoo.net|9204-9240|Edgoo|Sao Paulo, BR"
+	"lg.instantnode.eu|5201|InstantNode|Eygelshoven, NL|eu"
+	"lon.speedtest.clouvider.net|5200-5209|Clouvider|London, UK|eu"
+	"iperf-ams-nl.eranium.net|5201-5210|Eranium|Amsterdam, NL|eu"
+	"speedtest.fra1.de.leaseweb.net|5201-5210|Leaseweb|Frankfurt, DE|eu"
+	"iperf3.moji.fr|5200-5240|Moji|Paris, FR|eu"
+	"speedtest.wtnet.de|5200-5209|wilhelm.tel|Hamburg, DE|eu x"
+	"speedtest.nyc1.us.leaseweb.net|5201-5210|Leaseweb|New York, US|na"
+	"speedtest.chi11.us.leaseweb.net|5201-5210|Leaseweb|Chicago, US|na x"
+	"speedtest.mia11.us.leaseweb.net|5201-5210|Leaseweb|Miami, US|na x"
+	"speedtest.mtl2.ca.leaseweb.net|5201-5210|Leaseweb|Montreal, CA|na x"
+	"speedtest.dal13.us.leaseweb.net|5201-5210|Leaseweb|Dallas, US|na"
+	"la.speedtest.clouvider.net|5200-5209|Clouvider|Los Angeles, US|na"
+	"speedtest.sao1.edgoo.net|9204-9240|Edgoo|Sao Paulo, BR|sa"
+	"speedtest.sin1.sg.leaseweb.net|5201-5210|Leaseweb|Singapore, SG|asia"
+	"speedtest.hkg12.hk.leaseweb.net|5201-5210|Leaseweb|Hong Kong, HK|asia x"
+	"speedtest.tyo11.jp.leaseweb.net|5201-5210|Leaseweb|Tokyo, JP|asia"
+	"speedtest.syd12.au.leaseweb.net|5201-5210|Leaseweb|Sydney, AU|oc"
 )
 
 # download only, used when iperf3 can't be run or every server above failed
@@ -55,6 +65,11 @@ usage: nodebench.sh [options]
   -d DIR        directory for the disk test file (default: current dir)
   -S SIZE       size of the disk test file (default: 2G)
   -t N          threads for the multi-core cpu test (default: all)
+  -l REGIONS    only test these network regions, comma separated:
+                eu, na, sa, asia, oc (default: all)
+  -x            test against all locations, not just the standard 12
+  -q            quick run: shorter tests and a 512M disk file, for a
+                first look (quick runs don't go on the leaderboard)
   -L [NAME]     put the result on the public leaderboard, optionally
                 under NAME (default: the provider name)
   --no-share    don't upload the result
@@ -81,8 +96,22 @@ warn() { printf '%s\n' "$*" >&2; }
 
 header() {
 	say ""
-	say "$1"
+	if [[ -t 3 ]]; then
+		printf '\033[1m%s\033[0m\n' "$1" >&3
+	else
+		say "$1"
+	fi
 	say "---------------------------------------------------------------------"
+}
+
+# bar <value> <max> <width>: a row of block characters for the summary
+bar() {
+	awk -v v="$1" -v m="$2" -v w="$3" 'BEGIN {
+		n = (m > 0) ? int(v / m * w + 0.5) : 0
+		if (v > 0 && n < 1) n = 1
+		for (i = 0; i < n; i++) printf "#"
+		for (; i < w; i++) printf "."
+	}'
 }
 
 # awk does the float math, bash can't
@@ -259,6 +288,11 @@ fetch_bin() {
 
 # --- cpu --------------------------------------------------------------------
 
+# cpu_ticks prints "steal total" summed over all cpus from /proc/stat
+cpu_ticks() {
+	awk '/^cpu / { t = 0; for (i = 2; i <= NF; i++) t += $i; print $9 + 0, t; exit }' /proc/stat
+}
+
 # ossl_speed <threads> <algorithm>, prints bytes per second
 ossl_speed() {
 	local multi=()
@@ -285,7 +319,15 @@ cpu_test() {
 	CPU_AES=$(ossl_speed 1 aes-256-gcm)
 	if (( THREADS > 1 )); then
 		status "cpu: sha256, $THREADS threads"
+		local before after
+		before=$(cpu_ticks)
 		CPU_SHA_N=$(ossl_speed "$THREADS" sha256)
+		after=$(cpu_ticks)
+		# share of time the hypervisor gave our cores to someone else
+		CPU_STEAL=$(awk -v a="$before" -v b="$after" 'BEGIN {
+			split(a, x, " "); split(b, y, " ")
+			d = y[2] - x[2]; if (d <= 0) { print 0; exit }
+			printf "%.1f", (y[1] - x[1]) / d * 100 }')
 		status "cpu: aes-256-gcm, $THREADS threads"
 		CPU_AES_N=$(ossl_speed "$THREADS" aes-256-gcm)
 	else
@@ -299,6 +341,11 @@ cpu_test() {
 	printf '%-14s %-14s %s\n' "Test" "1 thread" "$THREADS threads" >&3
 	printf '%-14s %-14s %s\n' "sha256" "$(fmt_bytes "$CPU_SHA")" "$(fmt_bytes "$CPU_SHA_N")" >&3
 	printf '%-14s %-14s %s\n' "aes-256-gcm" "$(fmt_bytes "${CPU_AES:-0}")" "$(fmt_bytes "${CPU_AES_N:-0}")" >&3
+	if (( THREADS > 1 )); then
+		say ""
+		say "Scaling     : $(awk -v s="$CPU_SHA" -v n="$CPU_SHA_N" 'BEGIN { if (s > 0) printf "%.1fx", n / s }') from 1 to $THREADS threads"
+		say "Steal time  : ${CPU_STEAL:-0}% during the $THREADS thread run"
+	fi
 }
 
 # --- disk -------------------------------------------------------------------
@@ -331,6 +378,7 @@ disk_test() {
 	fi
 
 	TESTFILE="$DIR/nodebench.$$.fio"
+	disk_media
 
 	local fio
 	fio=$(command -v fio)
@@ -347,6 +395,29 @@ disk_test() {
 		disk_dd
 	fi
 	rm -f "$TESTFILE"
+}
+
+# disk_media works out the filesystem and what kind of device sits under
+# the test directory. Virtual disks report "rotational" no matter what is
+# behind them, so those are just called virtual.
+disk_media() {
+	local src dev base
+	DISK_FS=$(df -T -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $2 }')
+	DISK_MEDIA=
+	src=$(df -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $1 }')
+	[[ $src == /dev/* ]] || return
+	dev=$(readlink -f "$src")
+	base=$(lsblk -no PKNAME "$dev" 2>/dev/null | head -n1)
+	base=${base:-${dev##*/}}
+	case $base in
+		nvme*) DISK_MEDIA=nvme ;;
+		vd* | xvd*) DISK_MEDIA=virtual ;;
+		*)
+			if [[ -r /sys/block/$base/queue/rotational ]]; then
+				if [[ $(</sys/block/$base/queue/rotational) == 0 ]]; then DISK_MEDIA=ssd; else DISK_MEDIA=hdd; fi
+			fi
+			;;
+	esac
 }
 
 disk_fio() {
@@ -407,6 +478,10 @@ print_disk() {
 	[[ ${#DISK_ROWS[@]} -eq 0 ]] && { warn "disk test produced no results"; return; }
 	DISK_DONE=1
 	header "Disk ($1)"
+	if [[ -n $DISK_FS || -n $DISK_MEDIA ]]; then
+		say "Device      : ${DISK_MEDIA:-unknown}${DISK_FS:+, $DISK_FS}"
+		say ""
+	fi
 	printf '%-8s %-13s %-13s %-13s %s\n' "Block" "Read" "Write" "Total" "IOPS" >&3
 	local row bs r w ri wi
 	for row in "${DISK_ROWS[@]}"; do
@@ -424,12 +499,18 @@ to_mbps() {
 		printf "%.1f", v }'
 }
 
+# ping_ms <host> <proto> prints "avg_ms loss_pct"
 ping_ms() {
-	local out
-	out=$(ping -"$2" -c 4 -W 2 "$1" </dev/null 2>/dev/null)
+	local out avg loss
+	out=$(ping -"$2" -c 6 -i 0.3 -W 2 "$1" </dev/null 2>/dev/null)
 	# old iputils has no -4, plain ping is v4 there
-	[[ -z $out && $2 == 4 ]] && out=$(ping -c 4 -W 2 "$1" </dev/null 2>/dev/null)
-	sed -n 's/.*= [0-9.]*\/\([0-9.]*\)\/.*/\1/p' <<<"$out"
+	[[ -z $out && $2 == 4 ]] && out=$(ping -c 6 -i 0.3 -W 2 "$1" </dev/null 2>/dev/null)
+	# busybox ping has no -i
+	[[ -z $out ]] && out=$(ping -c 4 -W 2 "$1" </dev/null 2>/dev/null)
+	[[ -z $out ]] && return
+	avg=$(sed -n 's/.*= [0-9.]*\/\([0-9.]*\)\/.*/\1/p' <<<"$out")
+	loss=$(sed -n 's/.* \([0-9.]*\)% packet loss.*/\1/p' <<<"$out")
+	echo "${avg:-0} ${loss:-0}"
 }
 
 # iperf_run <host> <ports> <proto> [-R], prints Mbit/s
@@ -484,33 +565,47 @@ net_test() {
 	print_net
 }
 
+# in_regions <region>: true when -l wasn't given or lists this region
+in_regions() {
+	local region=${1% x}
+	[[ $1 == *" x" && -z $EXTENDED ]] && return 1
+	[[ -z $REGIONS ]] && return 0
+	[[ ",$REGIONS," == *",$region,"* ]]
+}
+
 net_iperf() {
-	local proto=$1 entry host ports provider location send recv ping
+	local proto=$1 entry host ports provider location region send recv ping loss n=0 total=0
 	for entry in "${IPERF_SERVERS[@]}"; do
-		IFS='|' read -r host ports provider location <<<"$entry"
-		status "net: $location ($provider), IPv$proto, ping"
-		ping=$(ping_ms "$host" "$proto")
-		status "net: $location ($provider), IPv$proto, send"
+		IFS='|' read -r host ports provider location region <<<"$entry"
+		in_regions "$region" && total=$((total + 1))
+	done
+	for entry in "${IPERF_SERVERS[@]}"; do
+		IFS='|' read -r host ports provider location region <<<"$entry"
+		in_regions "$region" || continue
+		n=$((n + 1))
+		status "net [$n/$total]: $location ($provider), IPv$proto, ping"
+		read -r ping loss <<<"$(ping_ms "$host" "$proto")"
+		status "net [$n/$total]: $location ($provider), IPv$proto, upload"
 		send=$(iperf_run "$host" "$ports" "$proto")
-		status "net: $location ($provider), IPv$proto, receive"
+		status "net [$n/$total]: $location ($provider), IPv$proto, download"
 		recv=$(iperf_run "$host" "$ports" "$proto" -R)
 		[[ -z $send && -z $recv ]] && continue
-		NET_ROWS+=("$proto|$provider|$location|${send:-0}|${recv:-0}|${ping:-0}")
+		NET_ROWS+=("$proto|$provider|$location|${send:-0}|${recv:-0}|${ping:-0}|${loss:-0}")
 	done
 }
 
 net_http() {
-	local proto=$1 entry url provider location host bps ping
+	local proto=$1 entry url provider location host bps ping loss
 	for entry in "${HTTP_SERVERS[@]}"; do
 		IFS='|' read -r url provider location <<<"$entry"
 		host=${url#*://}
 		host=${host%%/*}
 		status "net: $location ($provider), IPv$proto, download"
-		ping=$(ping_ms "$host" "$proto")
+		read -r ping loss <<<"$(ping_ms "$host" "$proto")"
 		bps=$(curl -s -"$proto" -o /dev/null --connect-timeout 5 --max-time "$IPERF_TIME" \
 			-w '%{speed_download}' "$url" </dev/null)
 		[[ -z $bps || $bps == 0 ]] && continue
-		NET_ROWS+=("$proto|$provider|$location|0|$(awk -v b="$bps" 'BEGIN { printf "%.1f", b * 8 / 1e6 }')|${ping:-0}")
+		NET_ROWS+=("$proto|$provider|$location|0|$(awk -v b="$bps" 'BEGIN { printf "%.1f", b * 8 / 1e6 }')|${ping:-0}|${loss:-0}")
 	done
 }
 
@@ -518,21 +613,55 @@ print_net() {
 	[[ ${#NET_ROWS[@]} -eq 0 ]] && { warn "network test produced no results"; return; }
 	NET_DONE=1
 	header "Network ($NET_TOOL)"
-	printf '%-30s %-14s %-14s %s\n' "Location" "Send" "Receive" "Ping" >&3
-	local row proto provider location send recv ping
+	printf '%-30s %-14s %-14s %-9s %s\n' "Location" "Upload" "Download" "Ping" "Loss" >&3
+	local row proto provider location send recv ping loss
 	for row in "${NET_ROWS[@]}"; do
-		IFS='|' read -r proto provider location send recv ping <<<"$row"
+		IFS='|' read -r proto provider location send recv ping loss <<<"$row"
 		[[ $proto == 6 ]] && provider="$provider v6"
-		printf '%-30s %-14s %-14s %s\n' "$location ($provider)" "$(fmt_mbps "$send")" \
-			"$(fmt_mbps "$recv")" "$(fmt_ms "$ping")" >&3
+		printf '%-30s %-14s %-14s %-9s %s\n' "$location ($provider)" "$(fmt_mbps "$send")" \
+			"$(fmt_mbps "$recv")" "$(fmt_ms "$ping")" "$(awk -v l="$loss" 'BEGIN { if (l > 0) printf "%g%%", l; else printf "-" }')" >&3
 	done
+}
+
+# --- summary ----------------------------------------------------------------
+
+print_summary() {
+	[[ -n $CPU_DONE || -n $DISK_DONE || -n $NET_DONE ]] || return
+	header "Summary"
+	if [[ -n $CPU_DONE ]]; then
+		say "$(printf '%-12s' "CPU")$(bar "$CPU_SHA" "$CPU_SHA_N" 20)  $(fmt_bytes "$CPU_SHA") on 1 thread"
+		say "$(printf '%-12s' "")$(bar "$CPU_SHA_N" "$CPU_SHA_N" 20)  $(fmt_bytes "$CPU_SHA_N") on $THREADS threads"
+	fi
+	if [[ -n $DISK_DONE ]]; then
+		local row bs r w ri wi top=0 v label="Disk"
+		for row in "${DISK_ROWS[@]}"; do
+			read -r bs r w ri wi <<<"$row"
+			top=$(awk -v a="$top" -v b="$(add "$r" "$w")" 'BEGIN { print (b > a) ? b : a }')
+		done
+		for row in "${DISK_ROWS[@]}"; do
+			read -r bs r w ri wi <<<"$row"
+			v=$(add "$r" "$w")
+			say "$(printf '%-12s' "$label")$(bar "$v" "$top" 20)  $(printf '%-5s' "$bs") $(fmt_kbs "$v"), $(fmt_iops "$(add "$ri" "$wi")") IOPS"
+			label=
+		done
+	fi
+	if [[ -n $NET_DONE ]]; then
+		local proto provider location send recv ping loss best=0 bloc=
+		for row in "${NET_ROWS[@]}"; do
+			IFS='|' read -r proto provider location send recv ping loss <<<"$row"
+			if awk -v a="$recv" -v b="$best" 'BEGIN { exit !(a > b) }'; then best=$recv; bloc=$location; fi
+		done
+		say "$(printf '%-12s' "Network")best download $(fmt_mbps "$best") from $bloc"
+	fi
+	say "$(printf '%-12s' "Time")$(( (SECONDS - START) / 60 ))m $(( (SECONDS - START) % 60 ))s${QUICK:+, quick run}"
 }
 
 # --- result -----------------------------------------------------------------
 
 build_json() {
 	local first row
-	printf '{"version":%s' "$(jstr "$VERSION")"
+	printf '{"version":%s,"duration_s":%s' "$(jstr "$VERSION")" "$(jnum "$((SECONDS - START))")"
+	[[ -n $QUICK ]] && printf ',"quick":true'
 	printf ',"system":{"os":%s,"kernel":%s,"arch":%s,"cpu":%s,"cores":%s,"mhz":%s,"aes":%s,"vmx":%s,"virt":%s,"ram_kib":%s,"swap_kib":%s,"disk_kib":%s,"uptime_s":%s}' \
 		"$(jstr "$SYS_OS")" "$(jstr "$SYS_KERNEL")" "$(jstr "$SYS_ARCH")" "$(jstr "$SYS_CPU")" \
 		"$(jnum "$SYS_CORES")" "$(jnum "$SYS_MHZ")" "$(jbool "$SYS_AES")" "$(jbool "$SYS_VMX")" \
@@ -548,13 +677,14 @@ build_json() {
 	fi
 
 	if [[ -n $CPU_DONE ]]; then
-		printf ',"cpu":{"openssl":%s,"threads":%s,"sha256_1":%s,"sha256_n":%s,"aes_1":%s,"aes_n":%s}' \
+		printf ',"cpu":{"openssl":%s,"threads":%s,"sha256_1":%s,"sha256_n":%s,"aes_1":%s,"aes_n":%s,"steal_pct":%s}' \
 			"$(jstr "$CPU_OPENSSL")" "$(jnum "$THREADS")" "$(jnum "$CPU_SHA")" "$(jnum "$CPU_SHA_N")" \
-			"$(jnum "$CPU_AES")" "$(jnum "$CPU_AES_N")"
+			"$(jnum "$CPU_AES")" "$(jnum "$CPU_AES_N")" "$(jnum "${CPU_STEAL:-0}")"
 	fi
 
 	if [[ -n $DISK_DONE ]]; then
-		printf ',"disk":{"tool":%s,"size":%s,"tests":[' "$(jstr "$DISK_TOOL")" "$(jstr "$SIZE")"
+		printf ',"disk":{"tool":%s,"size":%s,"fs":%s,"media":%s,"tests":[' "$(jstr "$DISK_TOOL")" "$(jstr "$SIZE")" \
+			"$(jstr "$DISK_FS")" "$(jstr "$DISK_MEDIA")"
 		first=1
 		local bs r w ri wi
 		for row in "${DISK_ROWS[@]}"; do
@@ -570,13 +700,13 @@ build_json() {
 	if [[ -n $NET_DONE ]]; then
 		printf ',"net":{"tool":%s,"tests":[' "$(jstr "$NET_TOOL")"
 		first=1
-		local proto provider location send recv ping
+		local proto provider location send recv ping loss
 		for row in "${NET_ROWS[@]}"; do
-			IFS='|' read -r proto provider location send recv ping <<<"$row"
+			IFS='|' read -r proto provider location send recv ping loss <<<"$row"
 			[[ -z $first ]] && printf ','
 			first=
-			printf '{"provider":%s,"location":%s,"proto":%s,"send_mbps":%s,"recv_mbps":%s,"ping_ms":%s}' \
-				"$(jstr "$provider")" "$(jstr "$location")" "$proto" "$(jnum "$send")" "$(jnum "$recv")" "$(jnum "$ping")"
+			printf '{"provider":%s,"location":%s,"proto":%s,"send_mbps":%s,"recv_mbps":%s,"ping_ms":%s,"loss_pct":%s}' \
+				"$(jstr "$provider")" "$(jstr "$location")" "$proto" "$(jnum "$send")" "$(jnum "$recv")" "$(jnum "$ping")" "$(jnum "$loss")"
 		done
 		printf ']}'
 	fi
@@ -609,7 +739,9 @@ cleanup() {
 }
 
 main() {
-	SKIP_CPU=; SKIP_DISK=; SKIP_NET=; PROTO=; SHARE=1; JSON_ONLY=; BOARD=; BOARD_NAME=
+	SKIP_CPU=; SKIP_DISK=; SKIP_NET=; PROTO=; SHARE=1; JSON_ONLY=; BOARD=; BOARD_NAME=; QUICK=; REGIONS=; EXTENDED=
+	START=$SECONDS
+	local size_set=
 	DIR=$PWD
 	SIZE=2G
 	THREADS=$(nproc 2>/dev/null || echo 1)
@@ -622,7 +754,10 @@ main() {
 			-4) PROTO=4 ;;
 			-6) PROTO=6 ;;
 			-d) DIR=$2; shift ;;
-			-S) SIZE=$2; shift ;;
+			-S) SIZE=$2; size_set=1; shift ;;
+			-q) QUICK=1 ;;
+			-x) EXTENDED=1 ;;
+			-l) REGIONS=$(tr '[:upper:] ' '[:lower:],' <<<"$2"); shift ;;
 			-t) THREADS=$2; shift ;;
 			-L | --leaderboard)
 				BOARD=1
@@ -638,6 +773,20 @@ main() {
 		esac
 		shift
 	done
+	if [[ -n $QUICK ]]; then
+		FIO_TIME=5; IPERF_TIME=4; CPU_TIME=2
+		[[ -z $size_set ]] && SIZE=512M
+		if [[ -n $BOARD ]]; then
+			warn "quick runs don't go on the leaderboard, ignoring -L"
+			BOARD=
+		fi
+	fi
+	if [[ -n $REGIONS ]]; then
+		local r
+		for r in ${REGIONS//,/ }; do
+			[[ $r =~ ^(eu|na|sa|asia|oc)$ ]] || { warn "unknown region: $r (use eu, na, sa, asia, oc)"; exit 1; }
+		done
+	fi
 	if [[ -n $BOARD && -z $SHARE ]]; then
 		warn "-L needs the upload, ignoring --no-share"
 		SHARE=1
@@ -677,6 +826,7 @@ main() {
 	[[ -z $SKIP_CPU ]] && cpu_test
 	[[ -z $SKIP_DISK ]] && disk_test
 	[[ -z $SKIP_NET ]] && net_test
+	print_summary
 
 	local json
 	json=$(build_json)

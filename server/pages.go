@@ -94,8 +94,10 @@ func (s *server) handlePage(name string) http.HandlerFunc {
 		switch name {
 		case "home":
 			p.Data = s.homeData()
+		case "docs":
+			p.Data = map[string]any{"Sites": standardSites(), "Total": len(sites)}
 		case "locations":
-			p.Data = map[string]any{"Sites": sites, "Map": netMap(nil)}
+			p.Data = map[string]any{"Sites": sites, "Map": netMap(nil), "Regions": regionNames, "Standard": standardSites(), "Total": len(sites)}
 		case "leaderboard":
 			p.Data = s.boardData(r)
 		}
@@ -104,7 +106,7 @@ func (s *server) handlePage(name string) http.HandlerFunc {
 }
 
 func (s *server) homeData() map[string]any {
-	d := map[string]any{"Sites": len(sites), "Map": netMap(nil)}
+	d := map[string]any{"Sites": standardSites(), "Total": len(sites), "Map": netMap(nil)}
 	if *example == "" {
 		return d
 	}

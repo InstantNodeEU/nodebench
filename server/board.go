@@ -127,7 +127,8 @@ func (b *board) load(s *Store) error {
 }
 
 func (b *board) add(r *Result) {
-	if !r.Leaderboard || !r.plausible() {
+	// quick runs use shorter tests and a small disk file, they don't compare
+	if !r.Leaderboard || r.Quick || !r.plausible() {
 		return
 	}
 	b.mu.Lock()

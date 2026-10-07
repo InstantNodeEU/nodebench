@@ -1,7 +1,7 @@
 {{define "main"}}{{with .Data}}
 <div class="frame">
 	<section class="res-head">
-		<span class="k">Result <span class="id">{{.R.ID}}</span> &middot; {{.Date}}</span>
+		<span class="k">Result <span class="id">{{.R.ID}}</span> &middot; {{.Date}}{{with .Took}} &middot; {{.}}{{end}}{{if .R.Quick}} <span class="tag">quick run</span>{{end}}</span>
 		<h1>{{.CPU}}</h1>
 		<p class="specs">{{.Specs}}</p>
 		<div class="acts">
@@ -22,7 +22,7 @@
 
 	{{with .DiskChart}}
 	<section class="block">
-		<div class="block-h"><span class="bh-ic">{{template "i-disk"}}</span><h2>Disk</h2><span>{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file</span></div>
+		<div class="block-h"><span class="bh-ic">{{template "i-disk"}}</span><h2>Disk</h2><span>{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file{{with .Device}}, {{.}}{{end}}</span></div>
 		<div class="panel">{{template "disk-chart" .}}</div>
 	</section>
 	{{end}}

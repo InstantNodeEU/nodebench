@@ -7,6 +7,7 @@
 		<div class="hrow"><span class="lbl">{{$.Threads}} threads</span>{{bar .MFrac "multi" .MultT}}<span class="val strong">{{.Multi}}</span></div>
 	</div>
 	{{end}}
+	{{with .Steal}}<div class="steal" title="CPU time the hypervisor gave to other guests while all threads were busy. Close to 0 is what you want on a VPS.">Steal time during the {{$.Threads}} thread run <span class="ping {{$.StealClass}}">{{.}}</span></div>{{end}}
 </div>
 {{end}}
 
@@ -44,7 +45,7 @@
 			<div class="hrow">{{if .SendFailed}}<span class="failed">{{template "i-x"}}upload failed</span>{{else}}{{bar .SFrac "send" .SendT}}<span class="val">{{.Send}}</span>{{end}}</div>
 			<div class="hrow">{{if .RecvFailed}}<span class="failed">{{template "i-x"}}download failed</span>{{else}}{{bar .RFrac "recv" .RecvT}}<span class="val">{{.Recv}}</span>{{end}}</div>
 		</div>
-		<span class="ping {{.PingClass}}">{{.Ping}}</span>
+		<span class="pingc"><span class="ping {{.PingClass}}">{{.Ping}}</span>{{with .Loss}}<span class="loss">{{.}}</span>{{end}}</span>
 	</div>
 	{{end}}
 	{{end}}

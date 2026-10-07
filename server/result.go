@@ -17,6 +17,8 @@ type Result struct {
 	Created time.Time `json:"created,omitempty"`
 
 	Version  string    `json:"version"`
+	Duration int64     `json:"duration_s,omitempty"`
+	Quick    bool      `json:"quick,omitempty"`
 	System   System    `json:"system"`
 	Location *Location `json:"location,omitempty"`
 	IPv4     bool      `json:"ipv4"`
@@ -65,11 +67,15 @@ type CPU struct {
 	SHA256N float64 `json:"sha256_n"`
 	AES     float64 `json:"aes_1"`
 	AESN    float64 `json:"aes_n"`
+	// share of cpu time taken by the hypervisor during the multi thread run
+	Steal float64 `json:"steal_pct,omitempty"`
 }
 
 type Disk struct {
 	Tool  string     `json:"tool"`
 	Size  string     `json:"size"`
+	FS    string     `json:"fs,omitempty"`
+	Media string     `json:"media,omitempty"`
 	Tests []DiskTest `json:"tests"`
 }
 
@@ -93,6 +99,7 @@ type NetTest struct {
 	Send     float64 `json:"send_mbps"`
 	Recv     float64 `json:"recv_mbps"`
 	Ping     float64 `json:"ping_ms"`
+	Loss     float64 `json:"loss_pct,omitempty"`
 }
 
 const maxBody = 32 << 10
@@ -138,6 +145,9 @@ func (r *Result) validate() error {
 			return err
 		}
 	}
+	if r.Duration < 0 || r.Duration > 86400 {
+		return errors.New("duration out of range")
+	}
 	if s.Cores < 0 || s.Cores > 4096 {
 		return errors.New("cores out of range")
 	}
@@ -167,6 +177,9 @@ func (r *Result) validate() error {
 		if err := nonneg(c.SHA256, c.SHA256N, c.AES, c.AESN); err != nil {
 			return err
 		}
+		if c.Steal < 0 || c.Steal > 100 {
+			return errors.New("steal out of range")
+		}
 	}
 
 	if d := r.Disk; d != nil {
@@ -178,6 +191,14 @@ func (r *Result) validate() error {
 		}
 		if err := cleanString(&d.Size, 16); err != nil {
 			return err
+		}
+		if err := cleanString(&d.FS, 16); err != nil {
+			return err
+		}
+		switch d.Media {
+		case "", "nvme", "ssd", "hdd", "virtual":
+		default:
+			return errors.New("disk: unknown media")
 		}
 		for i := range d.Tests {
 			t := &d.Tests[i]
@@ -210,6 +231,9 @@ func (r *Result) validate() error {
 			}
 			if err := nonneg(t.Send, t.Recv, t.Ping); err != nil {
 				return err
+			}
+			if t.Loss < 0 || t.Loss > 100 {
+				return errors.New("net: loss out of range")
 			}
 		}
 	}
