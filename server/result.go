@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -22,6 +24,11 @@ type Result struct {
 	CPU      *CPU      `json:"cpu,omitempty"`
 	Disk     *Disk     `json:"disk,omitempty"`
 	Net      *Net      `json:"net,omitempty"`
+
+	// Leaderboard is opt-in from the client (-L). Name is what shows up
+	// there, it falls back to the provider name.
+	Leaderboard bool   `json:"leaderboard,omitempty"`
+	Name        string `json:"name,omitempty"`
 }
 
 type System struct {
@@ -44,7 +51,10 @@ type Location struct {
 	ASN     string `json:"asn"`
 	Org     string `json:"org"`
 	Country string `json:"country"`
-	City    string `json:"city"`
+	// Older clients send the city. It's accepted so they keep working,
+	// but never stored or shown: together with the ASN it's too close
+	// to pinning down a home connection.
+	City string `json:"city,omitempty"`
 }
 
 // CPU throughput values are in bytes per second as reported by openssl speed.
@@ -102,7 +112,20 @@ func decodeResult(b []byte) (*Result, error) {
 	}
 	r.ID = ""
 	r.Created = time.Time{}
+	r.scrub()
 	return &r, nil
+}
+
+// scrub drops everything that must not be published. It runs on upload
+// and again on every load, so results stored before a field was dropped
+// don't leak it either.
+func (r *Result) scrub() {
+	if r.Location != nil {
+		r.Location.City = ""
+	}
+	if !r.Leaderboard {
+		r.Name = ""
+	}
 }
 
 func (r *Result) validate() error {
@@ -119,6 +142,10 @@ func (r *Result) validate() error {
 		return errors.New("cores out of range")
 	}
 	if err := nonneg(s.MHz, float64(s.RAM), float64(s.Swap), float64(s.DiskKiB), float64(s.Uptime)); err != nil {
+		return err
+	}
+
+	if err := cleanName(&r.Name); err != nil {
 		return err
 	}
 
@@ -205,6 +232,64 @@ func cleanString(s *string, max int) error {
 	}
 	*s = v
 	return nil
+}
+
+// cleanName allows a short display name for the leaderboard. Anything that
+// looks like a link is refused rather than mangled, so nobody gets a
+// free ad slot out of it.
+func cleanName(s *string) error {
+	if err := cleanString(s, 32); err != nil {
+		return errors.New("name: longer than 32 characters")
+	}
+	v := strings.Join(strings.Fields(*s), " ")
+	for _, r := range v {
+		if !unicode.IsPrint(r) {
+			return errors.New("name: unprintable character")
+		}
+	}
+	low := strings.ToLower(v)
+	for _, bad := range []string{"://", "www.", "<", ">"} {
+		if strings.Contains(low, bad) {
+			return errors.New("name: no links or markup")
+		}
+	}
+	if domainLike.MatchString(low) {
+		return errors.New("name: no links or markup")
+	}
+	*s = v
+	return nil
+}
+
+var domainLike = regexp.MustCompile(`[a-z0-9-]\.(com|net|org|io|eu|de|gg|xyz|me|co|dev|app|cloud|host|ru|cn|uk|nl|link|shop|site|online|store)\b`)
+
+// plausible catches numbers no real machine produces today. A result that
+// fails this is still stored and shareable, it just never ranks.
+func (r *Result) plausible() bool {
+	if c := r.CPU; c != nil {
+		perCore := c.SHA256N / float64(max(c.Threads, 1))
+		if c.SHA256 > 8e9 || c.AES > 30e9 || perCore > 8e9 || c.SHA256N > 2e12 || c.AESN > 6e12 {
+			return false
+		}
+		if c.SHA256N > 0 && c.SHA256 > c.SHA256N*1.5 {
+			return false
+		}
+	}
+	if d := r.Disk; d != nil {
+		for _, t := range d.Tests {
+			// about 30 GB/s and 5M IOPS combined, beyond a fast NVMe array
+			if t.ReadKBs+t.WriteKBs > 30e6 || t.ReadIOPS+t.WriteIOPS > 5e6 {
+				return false
+			}
+		}
+	}
+	if n := r.Net; n != nil {
+		for _, t := range n.Tests {
+			if t.Send > 100000 || t.Recv > 100000 || (t.Ping > 0 && t.Ping < 0.05) {
+				return false
+			}
+		}
+	}
+	return r.System.Cores <= 1024
 }
 
 // 1e13 is roughly 10 TB/s, anything above is garbage.

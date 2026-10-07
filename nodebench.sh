@@ -55,6 +55,8 @@ usage: nodebench.sh [options]
   -d DIR        directory for the disk test file (default: current dir)
   -S SIZE       size of the disk test file (default: 2G)
   -t N          threads for the multi-core cpu test (default: all)
+  -L [NAME]     put the result on the public leaderboard, optionally
+                under NAME (default: the provider name)
   --no-share    don't upload the result
   --json        only print the result as json
   -h            this help
@@ -181,7 +183,7 @@ collect_system() {
 	curl -s4 -o /dev/null --max-time 5 https://www.cloudflare.com/cdn-cgi/trace && HAS_V4=1
 	curl -s6 -o /dev/null --max-time 5 https://www.cloudflare.com/cdn-cgi/trace && HAS_V6=1
 
-	LOC_ASN=; LOC_ORG=; LOC_COUNTRY=; LOC_CITY=
+	LOC_ASN=; LOC_ORG=; LOC_COUNTRY=
 	local info
 	info=$(curl -s --max-time 5 https://ipinfo.io/json)
 	if [[ -n $info ]]; then
@@ -194,7 +196,6 @@ collect_system() {
 			LOC_ORG=$org
 		fi
 		LOC_COUNTRY=$(json_field country <<<"$info")
-		LOC_CITY=$(json_field city <<<"$info")
 	fi
 }
 
@@ -537,10 +538,14 @@ build_json() {
 		"$(jnum "$SYS_CORES")" "$(jnum "$SYS_MHZ")" "$(jbool "$SYS_AES")" "$(jbool "$SYS_VMX")" \
 		"$(jstr "$SYS_VIRT")" "$(jnum "$SYS_RAM")" "$(jnum "$SYS_SWAP")" "$(jnum "$SYS_DISK")" "$(jnum "$SYS_UPTIME")"
 	if [[ -n $LOC_ORG ]]; then
-		printf ',"location":{"asn":%s,"org":%s,"country":%s,"city":%s}' \
-			"$(jstr "$LOC_ASN")" "$(jstr "$LOC_ORG")" "$(jstr "$LOC_COUNTRY")" "$(jstr "$LOC_CITY")"
+		printf ',"location":{"asn":%s,"org":%s,"country":%s}' \
+			"$(jstr "$LOC_ASN")" "$(jstr "$LOC_ORG")" "$(jstr "$LOC_COUNTRY")"
 	fi
 	printf ',"ipv4":%s,"ipv6":%s' "$(jbool "$HAS_V4")" "$(jbool "$HAS_V6")"
+	if [[ -n $BOARD ]]; then
+		printf ',"leaderboard":true'
+		[[ -n $BOARD_NAME ]] && printf ',"name":%s' "$(jstr "$BOARD_NAME")"
+	fi
 
 	if [[ -n $CPU_DONE ]]; then
 		printf ',"cpu":{"openssl":%s,"threads":%s,"sha256_1":%s,"sha256_n":%s,"aes_1":%s,"aes_n":%s}' \
@@ -604,7 +609,7 @@ cleanup() {
 }
 
 main() {
-	SKIP_CPU=; SKIP_DISK=; SKIP_NET=; PROTO=; SHARE=1; JSON_ONLY=
+	SKIP_CPU=; SKIP_DISK=; SKIP_NET=; PROTO=; SHARE=1; JSON_ONLY=; BOARD=; BOARD_NAME=
 	DIR=$PWD
 	SIZE=2G
 	THREADS=$(nproc 2>/dev/null || echo 1)
@@ -619,6 +624,13 @@ main() {
 			-d) DIR=$2; shift ;;
 			-S) SIZE=$2; shift ;;
 			-t) THREADS=$2; shift ;;
+			-L | --leaderboard)
+				BOARD=1
+				if [[ $# -gt 1 && $2 != -* ]]; then
+					BOARD_NAME=$2
+					shift
+				fi
+				;;
 			--no-share) SHARE= ;;
 			--json) JSON_ONLY=1 ;;
 			-h | --help) usage; exit 0 ;;
@@ -626,6 +638,14 @@ main() {
 		esac
 		shift
 	done
+	if [[ -n $BOARD && -z $SHARE ]]; then
+		warn "-L needs the upload, ignoring --no-share"
+		SHARE=1
+	fi
+	if (( ${#BOARD_NAME} > 32 )); then
+		warn "leaderboard name is longer than 32 characters"
+		exit 1
+	fi
 	if ! [[ $THREADS =~ ^[0-9]+$ ]] || (( THREADS < 1 )); then
 		warn "bad thread count: $THREADS"
 		exit 1

@@ -95,5 +95,6 @@ func (s *Store) Load(id string) (*Result, error) {
 	if err := json.Unmarshal(data, &r); err != nil {
 		return nil, err
 	}
+	r.scrub()
 	return &r, nil
 }
