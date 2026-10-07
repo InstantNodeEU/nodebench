@@ -21,11 +21,11 @@ No root needed and nothing is installed. If fio or iperf3 are missing, static bu
 
 **System.** CPU model, cores, AES-NI and VM-x flags, virtualization type, RAM, swap, disk size, distro, kernel, uptime, IPv4/IPv6 connectivity and the provider (ASN) the server sits in.
 
-**CPU.** `openssl speed` with sha256 and aes-256-gcm on 16 KiB blocks, once single-threaded and once on all cores. It's not Geekbench, but openssl is on nearly every box, the run takes about 20 seconds and the numbers are easy to compare between machines.
+**CPU.** `openssl speed` with sha256 and aes-256-gcm on 16 KiB blocks, once single-threaded and once on all cores. It's not Geekbench, but openssl is on nearly every box, the run takes about 20 seconds and the numbers are easy to compare between machines. During the multi-core run it also records the steal time from `/proc/stat`, which shows how much CPU a busy host takes away from a VPS.
 
-**Disk.** fio random read/write (50/50 mix) with 4k, 64k, 512k and 1m blocks, iodepth 64, two jobs, O_DIRECT. Same parameters as yabs, so results line up with what people already post. If fio can't run at all it falls back to a sequential dd test.
+**Disk.** fio random read/write (50/50 mix) with 4k, 64k, 512k and 1m blocks, iodepth 64, two jobs, O_DIRECT. Same parameters as yabs, so results line up with what people already post. If fio can't run at all it falls back to a sequential dd test. The result also notes the filesystem and whether the test file sits on NVMe, an SSD, a spinning disk or a virtual disk.
 
-**Network.** iperf3 in both directions against public servers in London, Amsterdam, Frankfurt, New York, Los Angeles, Singapore and Sao Paulo, plus ping to each of them. Tests run over IPv4 and IPv6 if both work. If iperf3 isn't usable, it measures plain HTTP downloads from Hetzner's speedtest servers instead.
+**Network.** iperf3 in both directions, plus ping and packet loss, against 12 public servers: our own in Eygelshoven (NL), London, Amsterdam, Frankfurt, Paris, New York, Dallas, Los Angeles, Sao Paulo, Singapore, Tokyo and Sydney. `-x` adds Hamburg, Chicago, Miami, Montreal and Hong Kong. Tests run over IPv4 and IPv6 if both work. If iperf3 isn't usable, it measures plain HTTP downloads from Hetzner's speedtest servers instead.
 
 ## Options
 
@@ -44,6 +44,9 @@ curl -sL https://bench.instantnode.eu | bash -s -- -n --no-share
 | `-d DIR` | directory for the disk test file (default: current dir) |
 | `-S SIZE` | size of the disk test file, e.g. `512M` (default: `2G`) |
 | `-t N` | threads for the multi-core cpu test (default: all cores) |
+| `-l REGIONS` | only test these network regions, comma separated: `eu`, `na`, `sa`, `asia`, `oc` |
+| `-x` | test against all 17 locations instead of the standard 12 |
+| `-q` | quick run: shorter tests and a 512M disk file, not ranked on the leaderboard |
 | `-L [NAME]` | put the result on the [leaderboard](https://bench.instantnode.eu/leaderboard), optionally under NAME |
 | `--no-share` | don't upload the result |
 | `--json` | only print the result as json, the share link goes to stderr |
