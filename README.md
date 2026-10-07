@@ -5,6 +5,7 @@
   <img src="https://img.shields.io/badge/written%20in-Bash%20%2B%20Go-3b82f6?style=flat-square" alt="Bash + Go">
   <a href="https://github.com/instantnodeeu/nodebench/releases"><img src="https://img.shields.io/github/v/release/instantnodeeu/nodebench?style=flat-square&color=3b82f6" alt="release"></a>
   <a href="https://github.com/instantnodeeu/nodebench/stargazers"><img src="https://img.shields.io/github/stars/instantnodeeu/nodebench?style=flat-square&color=3b82f6" alt="stars"></a>
+  <a href="https://github.com/instantnodeeu/nodebench/actions"><img src="https://img.shields.io/github/actions/workflow/status/instantnodeeu/nodebench/ci.yml?style=flat-square&label=build&color=3b82f6" alt="build"></a>
   <a href="https://instantnode.eu"><img src="https://img.shields.io/badge/by-InstantNode-3b82f6?style=flat-square" alt="by InstantNode"></a>
 </p>
 
