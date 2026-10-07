@@ -1,5 +1,12 @@
 <p align="center"><img src="assets/banner.png" alt="nodebench" width="100%"></p>
 
+<p align="center">
+  <a href="https://github.com/luxend1337/nodebench/stargazers"><img src="https://img.shields.io/github/stars/luxend1337/nodebench?style=flat-square&color=3b82f6" alt="stars"></a>
+  <a href="https://github.com/luxend1337/nodebench/releases"><img src="https://img.shields.io/github/v/release/luxend1337/nodebench?style=flat-square&color=3b82f6" alt="release"></a>
+  <a href="https://github.com/luxend1337/nodebench/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/luxend1337/nodebench/ci.yml?style=flat-square&label=build" alt="build"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/github/license/luxend1337/nodebench?style=flat-square" alt="license"></a>
+</p>
+
 nodebench is a benchmark script for Linux servers. It tests CPU, disk and network, prints the results in plain tables and gives you a link you can paste into a forum post, a ticket or Discord.
 
 ```
