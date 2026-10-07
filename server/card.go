@@ -18,12 +18,15 @@ import (
 const cardW, cardH = 1200, 630
 
 var (
-	colBg     = color.RGBA{0x0d, 0x11, 0x17, 0xff}
-	colPanel  = color.RGBA{0x16, 0x1b, 0x22, 0xff}
-	colLine   = color.RGBA{0x30, 0x36, 0x3d, 0xff}
-	colText   = color.RGBA{0xe6, 0xed, 0xf3, 0xff}
-	colDim    = color.RGBA{0x8b, 0x94, 0x9e, 0xff}
-	colAccent = color.RGBA{0x58, 0xa6, 0xff, 0xff}
+	colBg     = color.RGBA{0x06, 0x06, 0x06, 0xff}
+	colPanel  = color.RGBA{0x0e, 0x0e, 0x10, 0xff}
+	colLine   = color.RGBA{0x1f, 0x1f, 0x22, 0xff}
+	colText   = color.RGBA{0xf2, 0xf1, 0xee, 0xff}
+	colDim    = color.RGBA{0x8f, 0x8e, 0x89, 0xff}
+	colAccent = color.RGBA{0x3b, 0x82, 0xf6, 0xff}
+
+	// the site gradient: cyan, blue, violet
+	gradStops = []color.RGBA{{0x22, 0xd3, 0xee, 0xff}, {0x3b, 0x82, 0xf6, 0xff}, {0x8b, 0x5c, 0xf6, 0xff}}
 )
 
 type faces struct {
@@ -65,12 +68,14 @@ func renderCard(w io.Writer, r *Result) error {
 
 	img := image.NewRGBA(image.Rect(0, 0, cardW, cardH))
 	fill(img, img.Bounds(), colBg)
-	fill(img, image.Rect(0, 0, cardW, 6), colAccent)
+	for x := 0; x < cardW; x++ {
+		fill(img, image.Rect(x, 0, x+1, 5), gradAt(float64(x)/float64(cardW-1)))
+	}
 
 	const pad = 64
-	x := text(img, f.brand, colText, pad, 82, "nodebench")
-	text(img, f.brand, colAccent, x, 82, "_")
-	brand := "InstantNode"
+	mark(img, pad, 84)
+	text(img, f.brand, colText, pad+44, 82, "nodebench")
+	brand := "by InstantNode"
 	text(img, f.spec, colDim, cardW-pad-measure(f.spec, brand), 80, brand)
 
 	text(img, f.title, colText, pad, 190, fit(f.title, shortCPU(r.System.CPU), cardW-2*pad))
@@ -111,6 +116,29 @@ func renderCard(w io.Writer, r *Result) error {
 
 	enc := png.Encoder{CompressionLevel: png.BestSpeed}
 	return enc.Encode(w, img)
+}
+
+// mark draws the logo bars with their baseline at y.
+func mark(img *image.RGBA, x, y int) {
+	heights := []int{9, 17, 12, 25, 36}
+	for i, h := range heights {
+		c := colText
+		if i == len(heights)-1 {
+			c = colAccent
+		}
+		fill(img, image.Rect(x+i*7, y-h, x+i*7+5, y), c)
+	}
+}
+
+func gradAt(t float64) color.RGBA {
+	seg := t * float64(len(gradStops)-1)
+	i := int(seg)
+	if i >= len(gradStops)-1 {
+		return gradStops[len(gradStops)-1]
+	}
+	a, b, f := gradStops[i], gradStops[i+1], seg-float64(i)
+	mix := func(x, y uint8) uint8 { return uint8(float64(x) + (float64(y)-float64(x))*f) }
+	return color.RGBA{mix(a.R, b.R), mix(a.G, b.G), mix(a.B, b.B), 0xff}
 }
 
 func fill(img *image.RGBA, r image.Rectangle, c color.Color) {
