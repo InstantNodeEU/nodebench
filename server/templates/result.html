@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.CPU}} - nodebench</title>
+<meta name="description" content="{{.Summary}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="nodebench">
+<meta property="og:title" content="{{.CPU}} - nodebench">
+<meta property="og:description" content="{{.Summary}}">
+<meta property="og:url" content="{{.URL}}">
+<meta property="og:image" content="{{.URL}}.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#111315">
+<style>{{.CSS}}</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+	<a class="brand" href="/">nodebench<span>_</span></a>
+	<span class="by">by <a href="https://instantnode.eu">InstantNode</a></span>
+</header>
+
+<section class="head">
+	<div class="rid">RESULT {{.R.ID}} &middot; {{.Date}}</div>
+	<h1>{{.CPU}}</h1>
+	<p class="specs">{{.Specs}}</p>
+</section>
+
+<section class="big">
+	<div>
+		<div class="k">CPU sha256</div>
+		{{if .R.CPU}}<div class="v">{{.CPUMain}}</div><div class="s">{{.R.CPU.Threads}} threads, {{.CPUSingle}} single</div>
+		{{else}}<div class="v na">skipped</div>{{end}}
+	</div>
+	<div>
+		<div class="k">Disk 4k random</div>
+		{{if .Disk4k}}<div class="v">{{.Disk4k}}</div><div class="s">{{.Disk4kIOPS}} IOPS read+write</div>
+		{{else}}<div class="v na">skipped</div>{{end}}
+	</div>
+	<div>
+		<div class="k">Best download</div>
+		{{if .BestNet}}<div class="v">{{.BestNet}}</div><div class="s">{{.BestNetFrom}}</div>
+		{{else}}<div class="v na">skipped</div>{{end}}
+	</div>
+</section>
+
+{{with .R.CPU}}
+<h2>CPU <span class="note">openssl speed, 16 KiB blocks</span></h2>
+<div class="scroll"><table>
+	<tr><th>Test</th><th>1 thread</th><th>{{.Threads}} threads</th></tr>
+	<tr><td class="l">sha256</td><td>{{bytes .SHA256}}</td><td>{{bytes .SHA256N}}</td></tr>
+	<tr><td class="l">aes-256-gcm</td><td>{{bytes .AES}}</td><td>{{bytes .AESN}}</td></tr>
+</table></div>
+{{end}}
+
+{{with .R.Disk}}
+<h2>Disk <span class="note">{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file</span></h2>
+<div class="scroll"><table>
+	<tr><th>Block size</th><th>Read</th><th>Write</th><th>Total</th><th>IOPS</th></tr>
+	{{range .Tests}}
+	<tr><td class="l">{{.BS}}</td><td>{{kbs .ReadKBs}}</td><td>{{kbs .WriteKBs}}</td><td>{{kbs (add .ReadKBs .WriteKBs)}}</td><td>{{iops (add .ReadIOPS .WriteIOPS)}}</td></tr>
+	{{end}}
+</table></div>
+{{end}}
+
+{{with .R.Net}}
+<h2>Network <span class="note">{{.Tool}}</span></h2>
+<div class="scroll"><table>
+	<tr><th>Location</th><th>Send</th><th>Receive</th><th>Ping</th></tr>
+	{{range .Tests}}
+	<tr><td class="l">{{.Location}} <span class="p">{{.Provider}}{{if eq .Proto 6}}, IPv6{{end}}</span></td><td>{{mbps .Send}}</td><td>{{mbps .Recv}}</td><td>{{ping .Ping}}</td></tr>
+	{{end}}
+</table></div>
+{{end}}
+
+<h2>System</h2>
+<dl>
+	<dt>Processor</dt><dd>{{.R.System.CPU}}</dd>
+	<dt>Cores</dt><dd>{{.R.System.Cores}}{{with .MHz}} @ {{.}}{{end}}</dd>
+	<dt>Flags</dt><dd>AES-NI {{yesno .R.System.AES}}, VM-x/AMD-V {{yesno .R.System.VMX}}</dd>
+	<dt>Virtualization</dt><dd>{{.Virt}}</dd>
+	<dt>Memory</dt><dd>{{.RAM}}{{if .R.System.Swap}}, {{.Swap}} swap{{end}}</dd>
+	<dt>Disk</dt><dd>{{.DiskSize}}</dd>
+	<dt>OS</dt><dd>{{.R.System.OS}} ({{.R.System.Arch}})</dd>
+	<dt>Kernel</dt><dd>{{.R.System.Kernel}}</dd>
+	<dt>Uptime</dt><dd>{{.Uptime}}</dd>
+	<dt>Network</dt><dd>IPv4 {{yesno .R.IPv4}}, IPv6 {{yesno .R.IPv6}}</dd>
+	{{with .R.Location}}<dt>Provider</dt><dd>{{.Org}}{{if .ASN}} ({{.ASN}}){{end}}{{if .Country}}, {{.Country}}{{end}}</dd>{{end}}
+</dl>
+
+<div class="run">
+	<p>Benchmark your own server:</p>
+	<code>{{.OneLiner}}</code>
+</div>
+
+<footer>
+	<span>nodebench {{.R.Version}} &middot; <a href="{{.URL}}.json">raw json</a></span>
+	<span><a href="https://github.com/instantnode/nodebench">source on github</a></span>
+</footer>
+</div>
+</body>
+</html>
