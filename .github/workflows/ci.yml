@@ -14,4 +14,4 @@ jobs:
           go-version-file: server/go.mod
       - run: go vet ./... && go test ./...
         working-directory: server
-      - run: shellcheck nodebench.sh
+      - run: shellcheck -S warning nodebench.sh

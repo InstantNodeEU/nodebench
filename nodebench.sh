@@ -85,7 +85,7 @@ EOF
 # colors and box drawing only when stdout is a terminal that can take them;
 # NO_COLOR (https://no-color.org) and plain ascii locales get the boring version
 style_init() {
-	B= D= A= G= Y= R= N= HL='-' BLK='#' EMP='.' SEP='|' SPIN='|/-\' LOGO='[nb]'
+	B='' D='' A='' G='' Y='' R='' N='' HL='-' BLK='#' EMP='.' SEP='|' SPIN='|/-\' LOGO='[nb]'
 	if [[ -t 3 && -z $NO_COLOR && $TERM != dumb ]]; then
 		B=$'\033[1m' D=$'\033[2m' N=$'\033[0m'
 		if [[ $COLORTERM == *truecolor* || $COLORTERM == *24bit* ]]; then
@@ -145,7 +145,7 @@ bar() {
 		if (v > 0 && n < 1) n = 1
 		if (n > w) n = w
 		print n }')
-	local full= empty= i
+	local full='' empty='' i
 	for ((i = 0; i < n; i++)); do full+=$BLK; done
 	for ((; i < $3; i++)); do empty+=$EMP; done
 	printf '%s%s%s%s%s' "$A" "$full" "$D" "$empty" "$N"
