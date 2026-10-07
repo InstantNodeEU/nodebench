@@ -82,36 +82,96 @@ EOF
 
 # --- output -----------------------------------------------------------------
 
+# colors and box drawing only when stdout is a terminal that can take them;
+# NO_COLOR (https://no-color.org) and plain ascii locales get the boring version
+style_init() {
+	B= D= A= G= Y= R= N= HL='-' BLK='#' EMP='.' SEP='|' SPIN='|/-\' LOGO='[nb]'
+	if [[ -t 3 && -z $NO_COLOR && $TERM != dumb ]]; then
+		B=$'\033[1m' D=$'\033[2m' N=$'\033[0m'
+		if [[ $COLORTERM == *truecolor* || $COLORTERM == *24bit* ]]; then
+			A=$'\033[38;2;59;130;246m' G=$'\033[38;2;63;185;80m' Y=$'\033[38;2;227;179;65m' R=$'\033[38;2;248;81;73m'
+		else
+			A=$'\033[34m' G=$'\033[32m' Y=$'\033[33m' R=$'\033[31m'
+		fi
+	fi
+	if [[ -t 3 && ${LC_ALL:-${LC_CTYPE:-$LANG}} == *[Uu][Tt][Ff]*8* ]]; then
+		HL='─' BLK='━' EMP='─' SEP='│' SPIN='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' LOGO='▁▃▅▇'
+	fi
+}
+
 say() { printf '%s\n' "$*" >&3; }
 
+STEP=0
 status() {
-	[[ -t 3 ]] && printf '\r\033[K%s' "$*" >&3
+	[[ -t 3 ]] || return 0
+	local c=${SPIN:STEP++ % ${#SPIN}:1}
+	printf '\r\033[K  %s%s%s %s%s%s' "$A" "$c" "$N" "$D" "$*" "$N" >&3
 }
 
 clear_status() {
 	[[ -t 3 ]] && printf '\r\033[K' >&3
 }
 
-warn() { printf '%s\n' "$*" >&2; }
+warn() { printf '  %s!%s %s\n' "$Y" "$N" "$*" >&2; }
 
-header() {
-	say ""
-	if [[ -t 3 ]]; then
-		printf '\033[1m%s\033[0m\n' "$1" >&3
-	else
-		say "$1"
-	fi
-	say "---------------------------------------------------------------------"
+rule() {
+	local n=${1:-66} line=
+	while (( n-- > 0 )); do line+=$HL; done
+	printf '%s' "$line"
 }
 
-# bar <value> <max> <width>: a row of block characters for the summary
+# header <title> [detail]
+header() {
+	say ""
+	say "  $B$1$N${2:+  $D$2$N}"
+	say "  $D$(rule)$N"
+}
+
+# kv <label> <value>: one aligned line of the system block
+kv() { printf '  %s%-12s%s %s\n' "$D" "$1" "$N" "$2" >&3; }
+
+# th <format> <columns...>: a dimmed table header
+th() {
+	local fmt=$1; shift
+	# shellcheck disable=SC2059
+	printf "  $D$fmt$N\n" "$@" >&3
+}
+
+# bar <value> <max> <width>: filled part in the accent color, rest dimmed
 bar() {
-	awk -v v="$1" -v m="$2" -v w="$3" 'BEGIN {
+	local n
+	n=$(awk -v v="$1" -v m="$2" -v w="$3" 'BEGIN {
 		n = (m > 0) ? int(v / m * w + 0.5) : 0
 		if (v > 0 && n < 1) n = 1
-		for (i = 0; i < n; i++) printf "#"
-		for (; i < w; i++) printf "."
-	}'
+		if (n > w) n = w
+		print n }')
+	local full= empty= i
+	for ((i = 0; i < n; i++)); do full+=$BLK; done
+	for ((; i < $3; i++)); do empty+=$EMP; done
+	printf '%s%s%s%s%s' "$A" "$full" "$D" "$empty" "$N"
+}
+
+# pad <width> <text>: left align text that may contain color codes
+pad() {
+	local plain
+	plain=$(sed $'s/\033\\[[0-9;]*m//g' <<<"$2")
+	printf '%s%*s' "$2" $(($1 - ${#plain})) ''
+}
+
+# ping_color <ms>: green below 50, yellow below 150, red above
+ping_color() {
+	local v
+	v=$(fmt_ms "$1")
+	[[ $v == - ]] && { printf '%s-%s' "$D" "$N"; return; }
+	if awk -v p="$1" 'BEGIN { exit !(p < 50) }'; then printf '%s%s%s' "$G" "$v" "$N"
+	elif awk -v p="$1" 'BEGIN { exit !(p < 150) }'; then printf '%s%s%s' "$Y" "$v" "$N"
+	else printf '%s%s%s' "$R" "$v" "$N"; fi
+}
+
+# speed <mbps>: "failed" in red instead of a misleading zero
+speed() {
+	if awk -v v="$1" 'BEGIN { exit !(v <= 0) }'; then printf '%sfailed%s' "$R" "$N"
+	else fmt_mbps "$1"; fi
 }
 
 # awk does the float math, bash can't
@@ -235,21 +295,21 @@ json_field() {
 
 print_system() {
 	local uptime_d=$((SYS_UPTIME / 86400)) uptime_h=$((SYS_UPTIME % 86400 / 3600)) uptime_m=$((SYS_UPTIME % 3600 / 60))
+	local yes="${G}yes$N" no="${D}no$N" on="${G}online$N" off="${D}offline$N"
 	header "System"
-	say "Processor   : $SYS_CPU"
-	say "Cores       : $SYS_CORES${SYS_MHZ:+ @ $SYS_MHZ MHz}"
-	say "AES-NI      : $([[ -n $SYS_AES ]] && echo yes || echo no)"
-	say "VM-x/AMD-V  : $([[ -n $SYS_VMX ]] && echo yes || echo no)"
-	say "RAM         : $(fmt_kib "$SYS_RAM")"
-	say "Swap        : $(fmt_kib "${SYS_SWAP:-0}")"
-	say "Disk        : $(fmt_kib "$SYS_DISK")"
-	say "Distro      : $SYS_OS"
-	say "Kernel      : $SYS_KERNEL ($SYS_ARCH)"
-	say "Virt        : $SYS_VIRT"
-	say "Uptime      : ${uptime_d}d ${uptime_h}h ${uptime_m}m"
-	say "IPv4 / IPv6 : $([[ -n $HAS_V4 ]] && echo online || echo offline) / $([[ -n $HAS_V6 ]] && echo online || echo offline)"
+	kv "Processor" "$B$SYS_CPU$N"
+	kv "Cores" "$SYS_CORES${SYS_MHZ:+ @ $SYS_MHZ MHz}"
+	kv "AES-NI" "$([[ -n $SYS_AES ]] && echo "$yes" || echo "$no")"
+	kv "VM-x/AMD-V" "$([[ -n $SYS_VMX ]] && echo "$yes" || echo "$no")"
+	kv "Memory" "$(fmt_kib "$SYS_RAM") RAM, $(fmt_kib "${SYS_SWAP:-0}") swap"
+	kv "Disk" "$(fmt_kib "$SYS_DISK")"
+	kv "Distro" "$SYS_OS"
+	kv "Kernel" "$SYS_KERNEL ($SYS_ARCH)"
+	kv "Virt" "$SYS_VIRT"
+	kv "Uptime" "${uptime_d}d ${uptime_h}h ${uptime_m}m"
+	kv "Network" "IPv4 $([[ -n $HAS_V4 ]] && echo "$on" || echo "$off"), IPv6 $([[ -n $HAS_V6 ]] && echo "$on" || echo "$off")"
 	if [[ -n $LOC_ORG ]]; then
-		say "Provider    : ${LOC_ASN:+$LOC_ASN }$LOC_ORG${LOC_COUNTRY:+ ($LOC_COUNTRY)}"
+		kv "Provider" "${LOC_ASN:+$LOC_ASN }$LOC_ORG${LOC_COUNTRY:+ ($LOC_COUNTRY)}"
 	fi
 }
 
@@ -337,14 +397,26 @@ cpu_test() {
 	clear_status
 	CPU_DONE=1
 
-	header "CPU (openssl speed, 16 KiB blocks)"
-	printf '%-14s %-14s %s\n' "Test" "1 thread" "$THREADS threads" >&3
-	printf '%-14s %-14s %s\n' "sha256" "$(fmt_bytes "$CPU_SHA")" "$(fmt_bytes "$CPU_SHA_N")" >&3
-	printf '%-14s %-14s %s\n' "aes-256-gcm" "$(fmt_bytes "${CPU_AES:-0}")" "$(fmt_bytes "${CPU_AES_N:-0}")" >&3
+	header "CPU" "openssl speed, 16 KiB blocks"
+	local name one all
+	if (( THREADS > 1 )); then
+		th '%-14s %-12s %-12s' "Test" "1 thread" "$THREADS threads"
+	else
+		th '%-14s %-12s' "Test" "1 thread"
+	fi
+	for name in sha256 aes-256-gcm; do
+		if [[ $name == sha256 ]]; then one=$CPU_SHA all=$CPU_SHA_N; else one=${CPU_AES:-0} all=${CPU_AES_N:-0}; fi
+		if (( THREADS > 1 )); then
+			printf '  %-14s %-12s %s%-12s%s %s\n' "$name" "$(fmt_bytes "$one")" "$B" "$(fmt_bytes "$all")" "$N" \
+				"$(bar "$one" "$all" 24)" >&3
+		else
+			printf '  %-14s %s%-12s%s\n' "$name" "$B" "$(fmt_bytes "$one")" "$N" >&3
+		fi
+	done
 	if (( THREADS > 1 )); then
 		say ""
-		say "Scaling     : $(awk -v s="$CPU_SHA" -v n="$CPU_SHA_N" 'BEGIN { if (s > 0) printf "%.1fx", n / s }') from 1 to $THREADS threads"
-		say "Steal time  : ${CPU_STEAL:-0}% during the $THREADS thread run"
+		kv "Scaling" "$A$(awk -v s="$CPU_SHA" -v n="$CPU_SHA_N" 'BEGIN { if (s > 0) printf "%.1fx", n / s }')$N from 1 to $THREADS threads"
+		kv "Steal time" "${CPU_STEAL:-0}% during the $THREADS thread run"
 	fi
 }
 
@@ -404,6 +476,9 @@ disk_media() {
 	local src dev base
 	DISK_FS=$(df -T -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $2 }')
 	DISK_MEDIA=
+	if [[ $DISK_FS == tmpfs || $DISK_FS == ramfs ]]; then
+		warn "$DIR is $DISK_FS, so the disk test measures memory. Use -d to point it at a real disk."
+	fi
 	src=$(df -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $1 }')
 	[[ $src == /dev/* ]] || return
 	dev=$(readlink -f "$src")
@@ -477,17 +552,22 @@ disk_dd() {
 print_disk() {
 	[[ ${#DISK_ROWS[@]} -eq 0 ]] && { warn "disk test produced no results"; return; }
 	DISK_DONE=1
-	header "Disk ($1)"
+	header "Disk" "$1"
 	if [[ -n $DISK_FS || -n $DISK_MEDIA ]]; then
-		say "Device      : ${DISK_MEDIA:-unknown}${DISK_FS:+, $DISK_FS}"
+		kv "Device" "${DISK_MEDIA:-unknown}${DISK_FS:+, $DISK_FS}"
 		say ""
 	fi
-	printf '%-8s %-13s %-13s %-13s %s\n' "Block" "Read" "Write" "Total" "IOPS" >&3
-	local row bs r w ri wi
+	local row bs r w ri wi top=0
 	for row in "${DISK_ROWS[@]}"; do
 		read -r bs r w ri wi <<<"$row"
-		printf '%-8s %-13s %-13s %-13s %s\n' "$bs" "$(fmt_kbs "$r")" "$(fmt_kbs "$w")" \
-			"$(fmt_kbs "$(add "$r" "$w")")" "$(fmt_iops "$(add "$ri" "$wi")")" >&3
+		top=$(awk -v a="$top" -v b="$(add "$r" "$w")" 'BEGIN { print (b > a) ? b : a }')
+	done
+	th '%-7s %-11s %-11s %-12s %-8s' "Block" "Read" "Write" "Total" "IOPS"
+	for row in "${DISK_ROWS[@]}"; do
+		read -r bs r w ri wi <<<"$row"
+		printf '  %-7s %-11s %-11s %s%-12s%s %-8s %s\n' "$bs" "$(fmt_kbs "$r")" "$(fmt_kbs "$w")" \
+			"$B" "$(fmt_kbs "$(add "$r" "$w")")" "$N" "$(fmt_iops "$(add "$ri" "$wi")")" \
+			"$(bar "$(add "$r" "$w")" "$top" 14)" >&3
 	done
 }
 
@@ -612,14 +692,21 @@ net_http() {
 print_net() {
 	[[ ${#NET_ROWS[@]} -eq 0 ]] && { warn "network test produced no results"; return; }
 	NET_DONE=1
-	header "Network ($NET_TOOL)"
-	printf '%-30s %-14s %-14s %-9s %s\n' "Location" "Upload" "Download" "Ping" "Loss" >&3
-	local row proto provider location send recv ping loss
+	header "Network" "$NET_TOOL, upload and download"
+	local row proto provider location send recv ping loss top=0 where
 	for row in "${NET_ROWS[@]}"; do
 		IFS='|' read -r proto provider location send recv ping loss <<<"$row"
-		[[ $proto == 6 ]] && provider="$provider v6"
-		printf '%-30s %-14s %-14s %-9s %s\n' "$location ($provider)" "$(fmt_mbps "$send")" \
-			"$(fmt_mbps "$recv")" "$(fmt_ms "$ping")" "$(awk -v l="$loss" 'BEGIN { if (l > 0) printf "%g%%", l; else printf "-" }')" >&3
+		top=$(awk -v a="$top" -v b="$recv" 'BEGIN { print (b > a) ? b : a }')
+	done
+	th '%-34s %-12s %-12s %-8s %-6s' "Location" "Upload" "Download" "Ping" "Loss"
+	for row in "${NET_ROWS[@]}"; do
+		IFS='|' read -r proto provider location send recv ping loss <<<"$row"
+		where="$location $D$provider$N"
+		[[ $proto == 6 ]] && where+=" ${D}v6$N"
+		local lost="$D-$N"
+		awk -v l="$loss" 'BEGIN { exit !(l > 0) }' && lost="$Y$(awk -v l="$loss" 'BEGIN { printf "%.0f%%", l }')$N"
+		printf '  %s %s %s %s %s %s\n' "$(pad 34 "$where")" "$(pad 12 "$(speed "$send")")" \
+			"$(pad 12 "$B$(speed "$recv")$N")" "$(pad 8 "$(ping_color "$ping")")" "$(pad 6 "$lost")" "$(bar "$recv" "$top" 12)" >&3
 	done
 }
 
@@ -629,20 +716,17 @@ print_summary() {
 	[[ -n $CPU_DONE || -n $DISK_DONE || -n $NET_DONE ]] || return
 	header "Summary"
 	if [[ -n $CPU_DONE ]]; then
-		say "$(printf '%-12s' "CPU")$(bar "$CPU_SHA" "$CPU_SHA_N" 20)  $(fmt_bytes "$CPU_SHA") on 1 thread"
-		say "$(printf '%-12s' "")$(bar "$CPU_SHA_N" "$CPU_SHA_N" 20)  $(fmt_bytes "$CPU_SHA_N") on $THREADS threads"
+		if (( THREADS > 1 )); then
+			kv "CPU" "$B$(fmt_bytes "$CPU_SHA_N")$N sha256 on $THREADS threads, $(fmt_bytes "$CPU_SHA") on one"
+		else
+			kv "CPU" "$B$(fmt_bytes "$CPU_SHA")$N sha256 on one thread"
+		fi
 	fi
 	if [[ -n $DISK_DONE ]]; then
-		local row bs r w ri wi top=0 v label="Disk"
+		local row bs r w ri wi
 		for row in "${DISK_ROWS[@]}"; do
 			read -r bs r w ri wi <<<"$row"
-			top=$(awk -v a="$top" -v b="$(add "$r" "$w")" 'BEGIN { print (b > a) ? b : a }')
-		done
-		for row in "${DISK_ROWS[@]}"; do
-			read -r bs r w ri wi <<<"$row"
-			v=$(add "$r" "$w")
-			say "$(printf '%-12s' "$label")$(bar "$v" "$top" 20)  $(printf '%-5s' "$bs") $(fmt_kbs "$v"), $(fmt_iops "$(add "$ri" "$wi")") IOPS"
-			label=
+			[[ $bs == 4k ]] && kv "Disk" "$B$(fmt_iops "$(add "$ri" "$wi")") IOPS$N at 4k, $(fmt_kbs "$(add "$r" "$w")")"
 		done
 	fi
 	if [[ -n $NET_DONE ]]; then
@@ -651,9 +735,9 @@ print_summary() {
 			IFS='|' read -r proto provider location send recv ping loss <<<"$row"
 			if awk -v a="$recv" -v b="$best" 'BEGIN { exit !(a > b) }'; then best=$recv; bloc=$location; fi
 		done
-		say "$(printf '%-12s' "Network")best download $(fmt_mbps "$best") from $bloc"
+		kv "Network" "$B$(fmt_mbps "$best")$N best download, from $bloc"
 	fi
-	say "$(printf '%-12s' "Time")$(( (SECONDS - START) / 60 ))m $(( (SECONDS - START) % 60 ))s${QUICK:+, quick run}"
+	kv "Time" "$(( (SECONDS - START) / 60 ))m $(( (SECONDS - START) % 60 ))s${QUICK:+, quick run}"
 }
 
 # --- result -----------------------------------------------------------------
@@ -724,7 +808,8 @@ share() {
 		warn "Share: $url"
 	elif [[ -n $url ]]; then
 		say ""
-		say "Share: $url"
+		say "  $A$(rule 3)$N ${B}Your result$N  $A$url$N"
+		[[ -n $BOARD ]] && say "  $D    listed on $NODEBENCH_URL/leaderboard once it passes the sanity checks$N"
 	else
 		local err
 		err=$(sed -n 's/.*"error":"\([^"]*\)".*/\1/p' <<<"$resp")
@@ -815,8 +900,10 @@ main() {
 	trap cleanup EXIT
 	trap 'exit 130' INT TERM
 
-	say "nodebench $VERSION, github.com/instantnode/nodebench"
-	say "$(date)"
+	style_init
+	say ""
+	say "  $A$LOGO$N ${B}nodebench$N $D$VERSION$N"
+	say "  ${D}cpu, disk and network benchmark  $SEP  ${NODEBENCH_URL#https://}  $SEP  $(date '+%Y-%m-%d %H:%M %Z')$N"
 
 	status "collecting system info"
 	collect_system

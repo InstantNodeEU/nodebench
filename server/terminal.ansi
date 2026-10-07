@@ -1,46 +1,60 @@
 [34m$[0m curl -sL bench.instantnode.eu | bash
-nodebench 1.0.0, github.com/instantnode/nodebench
-Wed Oct  7 09:33:54 CEST 2026
 
-[1mSystem[0m
----------------------------------------------------------------------
-[2mProcessor   :[0m AMD Ryzen 7 5700X 8-Core Processor
-[2mCores       :[0m 16 @ 3660 MHz
-[2mAES-NI      :[0m yes
-[2mVM-x/AMD-V  :[0m no
-[2mRAM         :[0m 31.2 GiB
-[2mSwap        :[0m 40.0 GiB
-[2mDisk        :[0m 923.5 GiB
-[2mDistro      :[0m Gentoo Linux
-[2mKernel      :[0m 7.1.7-gentoo-dist (x86_64)
-[2mVirt        :[0m none
-[2mUptime      :[0m 0d 1h 56m
-[2mIPv4 / IPv6 :[0m online / online
-[2mProvider    :[0m AS64500 Example Networks (DE)
+  [38;2;59;130;246m▁▃▅▇[0m [1mnodebench[0m [2m1.1.0[0m
+  [2mcpu, disk and network benchmark  │  bench.instantnode.eu  │  2026-10-07 11:32 UTC[0m
+[K  [38;2;59;130;246m⠋[0m [2mcollecting system info[0m[K
+  [1mSystem[0m
+  [2m──────────────────────────────────────────────────────────────────[0m
+  [2mProcessor   [0m [1mAMD EPYC 7713 64-Core Processor[0m
+  [2mCores       [0m 1 @ 3100 MHz
+  [2mAES-NI      [0m [38;2;63;185;80myes[0m
+  [2mVM-x/AMD-V  [0m [38;2;63;185;80myes[0m
+  [2mMemory      [0m 1.0 GiB RAM, 512.0 MiB swap
+  [2mDisk        [0m 9.7 GiB
+  [2mDistro      [0m Debian GNU/Linux 13 (trixie)
+  [2mKernel      [0m 7.0.14-14-pve (x86_64)
+  [2mVirt        [0m lxc
+  [2mUptime      [0m 0d 2h 43m
+  [2mNetwork     [0m IPv4 [38;2;63;185;80monline[0m, IPv6 [2moffline[0m
+  [2mProvider    [0m InstantNode (NL)
+[K  [38;2;59;130;246m⠙[0m [2mcpu: sha256, 1 thread[0m[K  [38;2;59;130;246m⠹[0m [2mcpu: aes-256-gcm, 1 thread[0m[K
+  [1mCPU[0m  [2mopenssl speed, 16 KiB blocks[0m
+  [2m──────────────────────────────────────────────────────────────────[0m
+  [2mTest           1 thread    [0m
+  sha256         [1m1.44 GB/s   [0m
+  aes-256-gcm    [1m3.07 GB/s   [0m
+[K  [38;2;59;130;246m⠸[0m [2mdisk: fetching fio[0m[K  [38;2;59;130;246m⠼[0m [2mdisk: writing 512M test file[0m[K  [38;2;59;130;246m⠴[0m [2mdisk: random read/write, 4k blocks[0m[K  [38;2;59;130;246m⠦[0m [2mdisk: random read/write, 64k blocks[0m[K  [38;2;59;130;246m⠧[0m [2mdisk: random read/write, 512k blocks[0m[K  [38;2;59;130;246m⠇[0m [2mdisk: random read/write, 1m blocks[0m[K
+  [1mDisk[0m  [2mfio, random 50/50 read/write, 512M file[0m
+  [2m──────────────────────────────────────────────────────────────────[0m
+  [2mDevice      [0m ssd, ext4
 
-[1mCPU (openssl speed, 16 KiB blocks)[0m
----------------------------------------------------------------------
-[2mTest           1 thread       4 threads[0m
-sha256         2.21 GB/s      8.60 GB/s
-aes-256-gcm    5.15 GB/s      19.26 GB/s
+  [2mBlock   Read        Write       Total        IOPS    [0m
+  4k      138.5 MB/s  138.6 MB/s  [1m277.1 MB/s  [0m 70.9k    [38;2;59;130;246m━━[2m────────────[0m
+  64k     757.6 MB/s  758.7 MB/s  [1m1.48 GB/s   [0m 24.3k    [38;2;59;130;246m━━━━━━━━━━━━━[2m─[0m
+  512k    842.8 MB/s  847.2 MB/s  [1m1.65 GB/s   [0m 3379     [38;2;59;130;246m━━━━━━━━━━━━━━[2m[0m
+  1m      628.7 MB/s  638.8 MB/s  [1m1.24 GB/s   [0m 1266     [38;2;59;130;246m━━━━━━━━━━━[2m───[0m
+[K  [38;2;59;130;246m⠏[0m [2mnet [1/12]: Eygelshoven, NL (InstantNode), IPv4, ping[0m[K  [38;2;59;130;246m⠋[0m [2mnet [1/12]: Eygelshoven, NL (InstantNode), IPv4, upload[0m[K  [38;2;59;130;246m⠙[0m [2mnet [1/12]: Eygelshoven, NL (InstantNode), IPv4, download[0m[K  [38;2;59;130;246m⠹[0m [2mnet [2/12]: London, UK (Clouvider), IPv4, ping[0m[K  [38;2;59;130;246m⠸[0m [2mnet [2/12]: London, UK (Clouvider), IPv4, upload[0m[K  [38;2;59;130;246m⠼[0m [2mnet [2/12]: London, UK (Clouvider), IPv4, download[0m[K  [38;2;59;130;246m⠴[0m [2mnet [3/12]: Amsterdam, NL (Eranium), IPv4, ping[0m[K  [38;2;59;130;246m⠦[0m [2mnet [3/12]: Amsterdam, NL (Eranium), IPv4, upload[0m[K  [38;2;59;130;246m⠧[0m [2mnet [3/12]: Amsterdam, NL (Eranium), IPv4, download[0m[K  [38;2;59;130;246m⠇[0m [2mnet [4/12]: Frankfurt, DE (Leaseweb), IPv4, ping[0m[K  [38;2;59;130;246m⠏[0m [2mnet [4/12]: Frankfurt, DE (Leaseweb), IPv4, upload[0m[K  [38;2;59;130;246m⠋[0m [2mnet [4/12]: Frankfurt, DE (Leaseweb), IPv4, download[0m[K  [38;2;59;130;246m⠙[0m [2mnet [5/12]: Paris, FR (Moji), IPv4, ping[0m[K  [38;2;59;130;246m⠹[0m [2mnet [5/12]: Paris, FR (Moji), IPv4, upload[0m[K  [38;2;59;130;246m⠸[0m [2mnet [5/12]: Paris, FR (Moji), IPv4, download[0m[K  [38;2;59;130;246m⠼[0m [2mnet [6/12]: New York, US (Leaseweb), IPv4, ping[0m[K  [38;2;59;130;246m⠴[0m [2mnet [6/12]: New York, US (Leaseweb), IPv4, upload[0m[K  [38;2;59;130;246m⠦[0m [2mnet [6/12]: New York, US (Leaseweb), IPv4, download[0m[K  [38;2;59;130;246m⠧[0m [2mnet [7/12]: Dallas, US (Leaseweb), IPv4, ping[0m[K  [38;2;59;130;246m⠇[0m [2mnet [7/12]: Dallas, US (Leaseweb), IPv4, upload[0m[K  [38;2;59;130;246m⠏[0m [2mnet [7/12]: Dallas, US (Leaseweb), IPv4, download[0m[K  [38;2;59;130;246m⠋[0m [2mnet [8/12]: Los Angeles, US (Clouvider), IPv4, ping[0m[K  [38;2;59;130;246m⠙[0m [2mnet [8/12]: Los Angeles, US (Clouvider), IPv4, upload[0m[K  [38;2;59;130;246m⠹[0m [2mnet [8/12]: Los Angeles, US (Clouvider), IPv4, download[0m[K  [38;2;59;130;246m⠸[0m [2mnet [9/12]: Sao Paulo, BR (Edgoo), IPv4, ping[0m[K  [38;2;59;130;246m⠼[0m [2mnet [9/12]: Sao Paulo, BR (Edgoo), IPv4, upload[0m[K  [38;2;59;130;246m⠴[0m [2mnet [9/12]: Sao Paulo, BR (Edgoo), IPv4, download[0m[K  [38;2;59;130;246m⠦[0m [2mnet [10/12]: Singapore, SG (Leaseweb), IPv4, ping[0m[K  [38;2;59;130;246m⠧[0m [2mnet [10/12]: Singapore, SG (Leaseweb), IPv4, upload[0m[K  [38;2;59;130;246m⠇[0m [2mnet [10/12]: Singapore, SG (Leaseweb), IPv4, download[0m[K  [38;2;59;130;246m⠏[0m [2mnet [11/12]: Tokyo, JP (Leaseweb), IPv4, ping[0m[K  [38;2;59;130;246m⠋[0m [2mnet [11/12]: Tokyo, JP (Leaseweb), IPv4, upload[0m[K  [38;2;59;130;246m⠙[0m [2mnet [11/12]: Tokyo, JP (Leaseweb), IPv4, download[0m[K  [38;2;59;130;246m⠹[0m [2mnet [12/12]: Sydney, AU (Leaseweb), IPv4, ping[0m[K  [38;2;59;130;246m⠸[0m [2mnet [12/12]: Sydney, AU (Leaseweb), IPv4, upload[0m[K  [38;2;59;130;246m⠼[0m [2mnet [12/12]: Sydney, AU (Leaseweb), IPv4, download[0m[K
+  [1mNetwork[0m  [2miperf3, upload and download[0m
+  [2m──────────────────────────────────────────────────────────────────[0m
+  [2mLocation                           Upload       Download     Ping     Loss  [0m
+  Eygelshoven, NL [2mInstantNode[0m        954 Mbit/s   [1m948 Mbit/s[0m   [38;2;63;185;80m0.6 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━━━━[2m[0m
+  London, UK [2mClouvider[0m               949 Mbit/s   [1m941 Mbit/s[0m   [38;2;63;185;80m9.5 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━━━━[2m[0m
+  Amsterdam, NL [2mEranium[0m              948 Mbit/s   [1m950 Mbit/s[0m   [38;2;63;185;80m3.8 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━━━━[2m[0m
+  Frankfurt, DE [2mLeaseweb[0m             946 Mbit/s   [1m945 Mbit/s[0m   [38;2;63;185;80m9.4 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━━━━[2m[0m
+  Paris, FR [2mMoji[0m                     948 Mbit/s   [1m930 Mbit/s[0m   [38;2;63;185;80m13 ms[0m    [2m-[0m      [38;2;59;130;246m━━━━━━━━━━━━[2m[0m
+  New York, US [2mLeaseweb[0m              894 Mbit/s   [1m726 Mbit/s[0m   [38;2;227;179;65m91 ms[0m    [2m-[0m      [38;2;59;130;246m━━━━━━━━━[2m───[0m
+  Dallas, US [2mLeaseweb[0m                869 Mbit/s   [1m806 Mbit/s[0m   [38;2;227;179;65m115 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━━[2m──[0m
+  Los Angeles, US [2mClouvider[0m          650 Mbit/s   [1m377 Mbit/s[0m   [38;2;227;179;65m141 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━[2m───────[0m
+  Sao Paulo, BR [2mEdgoo[0m                731 Mbit/s   [1m721 Mbit/s[0m   [38;2;248;81;73m209 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━[2m───[0m
+  Singapore, SG [2mLeaseweb[0m             831 Mbit/s   [1m765 Mbit/s[0m   [38;2;248;81;73m161 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━━[2m──[0m
+  Tokyo, JP [2mLeaseweb[0m                 649 Mbit/s   [1m702 Mbit/s[0m   [38;2;248;81;73m237 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━[2m───[0m
+  Sydney, AU [2mLeaseweb[0m                592 Mbit/s   [1m715 Mbit/s[0m   [38;2;248;81;73m258 ms[0m   [2m-[0m      [38;2;59;130;246m━━━━━━━━━[2m───[0m
 
-[1mDisk (fio, random 50/50 read/write, 256M file)[0m
----------------------------------------------------------------------
-[2mBlock    Read          Write         Total         IOPS[0m
-4k       1.51 GB/s     1.51 GB/s     3.01 GB/s     789k
-64k      4.21 GB/s     4.21 GB/s     8.42 GB/s     138k
-512k     3.03 GB/s     3.05 GB/s     6.08 GB/s     12.5k
-1m       2.91 GB/s     3.00 GB/s     5.90 GB/s     6043
+  [1mSummary[0m
+  [2m──────────────────────────────────────────────────────────────────[0m
+  [2mCPU         [0m [1m1.44 GB/s[0m sha256 on one thread
+  [2mDisk        [0m [1m70.9k IOPS[0m at 4k, 277.1 MB/s
+  [2mNetwork     [0m [1m950 Mbit/s[0m best download, from Amsterdam, NL
+  [2mTime        [0m 6m 36s
 
-[1mNetwork (iperf3)[0m
----------------------------------------------------------------------
-[2mLocation                       Send           Receive        Ping[0m
-London, UK (Clouvider)         38 Mbit/s      89 Mbit/s      23 ms
-Amsterdam, NL (Eranium)        36 Mbit/s      79 Mbit/s      35 ms
-Frankfurt, DE (Leaseweb)       37 Mbit/s      84 Mbit/s      15 ms
-New York, US (Leaseweb)        33 Mbit/s      84 Mbit/s      105 ms
-Los Angeles, US (Clouvider)    30 Mbit/s      8 Mbit/s       161 ms
-Singapore, SG (Leaseweb)       28 Mbit/s      71 Mbit/s      198 ms
-Sao Paulo, BR (Edgoo)          23 Mbit/s      70 Mbit/s      201 ms
-
-Share: [34mhttps://bench.instantnode.eu/r/PVqsFypo[0m
+[K
