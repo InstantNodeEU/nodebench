@@ -1,10 +1,10 @@
-<p align="center"><img src="assets/banner.png" alt="nodebench" width="100%"></p>
+<p align="center"><img src="https://bench.instantnode.eu/oss/nodebench/banner.png" alt="nodebench" width="100%"></p>
 
 <p align="center">
-  <a href="https://github.com/luxend1337/nodebench/stargazers"><img src="https://img.shields.io/github/stars/luxend1337/nodebench?style=flat-square&color=3b82f6" alt="stars"></a>
-  <a href="https://github.com/luxend1337/nodebench/releases"><img src="https://img.shields.io/github/v/release/luxend1337/nodebench?style=flat-square&color=3b82f6" alt="release"></a>
-  <a href="https://github.com/luxend1337/nodebench/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/luxend1337/nodebench/ci.yml?style=flat-square&label=build" alt="build"></a>
-  <a href="LICENSE"><img src="https://img.shields.io/github/license/luxend1337/nodebench?style=flat-square" alt="license"></a>
+  <img src="https://img.shields.io/badge/license-MIT-3b82f6?style=flat-square" alt="license MIT">
+  <img src="https://img.shields.io/badge/written%20in-Bash%20%2B%20Go-3b82f6?style=flat-square" alt="Bash + Go">
+  <img src="https://img.shields.io/badge/platform-linux-3b82f6?style=flat-square" alt="linux">
+  <a href="https://instantnode.eu"><img src="https://img.shields.io/badge/by-InstantNode-3b82f6?style=flat-square" alt="by InstantNode"></a>
 </p>
 
 nodebench is a benchmark script for Linux servers. It tests CPU, disk and network, prints the results in plain tables and gives you a link you can paste into a forum post, a ticket or Discord.
@@ -15,7 +15,7 @@ curl -sL https://bench.instantnode.eu | bash
 
 No root needed and nothing is installed. If fio or iperf3 are missing, static builds are downloaded into a temp directory, checked against their sha256 sums and deleted again when the script exits.
 
-<p align="center"><img src="assets/terminal.png" alt="nodebench terminal output" width="760"></p>
+<p align="center"><img src="https://bench.instantnode.eu/oss/nodebench/terminal.png" alt="nodebench terminal output" width="760"></p>
 
 ## What it measures
 
@@ -67,9 +67,9 @@ Without a name the provider name is shown. Only the best run per name, CPU model
 
 At the end the result is posted to the share server and you get a link like `https://bench.instantnode.eu/r/PVqsFypo`. The page shows everything from the run, and it comes with an Open Graph image so the link unfurls nicely in Discord, Slack or on X.
 
-<p align="center"><img src="assets/share.png" alt="result page" width="760"></p>
+<p align="center"><img src="https://bench.instantnode.eu/oss/nodebench/share.png" alt="result page" width="760"></p>
 
-<p align="center"><img src="assets/card.png" alt="preview image" width="600"></p>
+<p align="center"><img src="https://bench.instantnode.eu/oss/nodebench/card.png" alt="preview image" width="600"></p>
 
 What gets uploaded is exactly what `--json` prints. Your IP address is not part of it and the server doesn't log it. The provider, ASN and country are shown, the city is not: older versions of the script sent it, the server drops it on upload and when serving old results. Use `--no-share` if you don't want a link at all. Results are public to anyone who has the link.
 
