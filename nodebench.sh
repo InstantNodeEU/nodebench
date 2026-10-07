@@ -19,6 +19,7 @@ IPERF_TAG="iperf3-3.22"
 
 # host|port range|provider|location
 IPERF_SERVERS=(
+	"lg.instantnode.eu|5201|InstantNode|Eygelshoven, NL"
 	"lon.speedtest.clouvider.net|5200-5209|Clouvider|London, UK"
 	"iperf-ams-nl.eranium.net|5201-5210|Eranium|Amsterdam, NL"
 	"speedtest.fra1.de.leaseweb.net|5201-5210|Leaseweb|Frankfurt, DE"
