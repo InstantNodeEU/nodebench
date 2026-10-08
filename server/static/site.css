@@ -353,6 +353,7 @@ table.spec { width: 100%; border-collapse: collapse; font-size: 14.5px; }
 .spec td .badge { margin-left: 10px; font-size: 10.5px; vertical-align: 1px; }
 .spec .show-s { display: none; }
 .spec td.barc { width: 34%; min-width: 120px; padding-top: 19px; }
+.board .spec td.barc { width: 16%; }
 .spec.compact td { padding-top: 13px; padding-bottom: 13px; }
 @media (max-width: 620px) {
 	table.spec { font-size: 13.5px; }
