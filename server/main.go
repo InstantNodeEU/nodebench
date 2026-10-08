@@ -43,6 +43,7 @@ var (
 	perHour = flag.Int("rate", 20, "max uploads per ip per hour")
 	example = flag.String("example", env("NODEBENCH_EXAMPLE", ""), "result id shown as the example on the landing page")
 	admin   = flag.String("admin-token", "", "bearer token for moderation, also read from NODEBENCH_ADMIN_TOKEN")
+	asnMap  = flag.String("asn-aliases", env("NODEBENCH_ASN_ALIASES", ""), "provider aliases, AS64500=Name:CC,...")
 )
 
 func env(key, def string) string {
@@ -65,6 +66,7 @@ type server struct {
 func main() {
 	flag.Parse()
 	*baseURL = strings.TrimRight(*baseURL, "/")
+	aliases = parseAliases(*asnMap)
 
 	if err := os.MkdirAll(*dataDir, 0o755); err != nil {
 		log.Fatal(err)
@@ -117,6 +119,7 @@ func main() {
 	})
 	mux.Handle("GET /static/", longCache(http.FileServerFS(staticFS)))
 	mux.Handle("GET /favicon.ico", http.RedirectHandler("/static/favicon.svg", http.StatusMovedPermanently))
+	mux.HandleFunc("GET /api/alias", handleAlias)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) { io.WriteString(w, "ok\n") })
 
 	srv := &http.Server{

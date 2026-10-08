@@ -102,6 +102,7 @@ docker run -d -p 8080:8080 -v nodebench:/data -e NODEBENCH_BASE=https://bench.ex
 | `-rate` | | `20` | uploads per IP per hour |
 | `-example` | `NODEBENCH_EXAMPLE` | | result shown with its charts on the home page |
 | | `NODEBENCH_ADMIN_TOKEN` | | enables `POST /api/results/<id>/hide` to take a result off the leaderboard |
+| `-asn-aliases` | `NODEBENCH_ASN_ALIASES` | | rename a network on result pages, `AS64500=Example Hosting:NL,AS64501=Other Net`. The script asks `/api/alias` with the asn only, so the terminal shows the same name |
 
 The leaderboard is kept in memory and rebuilt from the JSON files on start. Hidden results are listed in `hidden.txt` in the data directory.
 

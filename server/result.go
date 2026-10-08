@@ -129,10 +129,7 @@ func decodeResult(b []byte) (*Result, error) {
 func (r *Result) scrub() {
 	if r.Location != nil {
 		r.Location.City = ""
-		// InstantNode's own network, the servers are in Eygelshoven
-		if r.Location.ASN == "AS49581" {
-			r.Location.Org, r.Location.Country = "InstantNode", "NL"
-		}
+		applyAlias(r.Location)
 	}
 	if !r.Leaderboard {
 		r.Name = ""

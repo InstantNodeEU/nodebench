@@ -1,6 +1,7 @@
 package main
 
 import (
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -113,12 +114,33 @@ const sample = `{
     {"provider": "Leaseweb", "location": "Singapore, SG", "proto": 4, "send_mbps": 610.0, "recv_mbps": 0, "ping_ms": 161.2}]}
 }`
 
-func TestInstantNodeASN(t *testing.T) {
-	r, err := decodeResult([]byte(`{"version":"1","system":{"cores":1},"location":{"asn":"AS49581","org":"Ferdinand Zink trading as Tube-Hosting","country":"DE"},"ipv4":true,"ipv6":false,"cpu":{"threads":1,"sha256_1":1,"sha256_n":1,"aes_1":1,"aes_n":1}}`))
+func TestASNAliases(t *testing.T) {
+	old := aliases
+	defer func() { aliases = old }()
+	aliases = parseAliases("AS64500=Example Hosting:nl, bogus, AS64501=Plain Net")
+
+	r, err := decodeResult([]byte(`{"version":"1","system":{"cores":1},"location":{"asn":"AS64500","org":"Holding Company GmbH","country":"DE"},"ipv4":true,"ipv6":false,"cpu":{"threads":1,"sha256_1":1,"sha256_n":1,"aes_1":1,"aes_n":1}}`))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if r.Location.Org != "InstantNode" || r.Location.Country != "NL" {
-		t.Fatalf("got %q / %q, want InstantNode / NL", r.Location.Org, r.Location.Country)
+	if r.Location.Org != "Example Hosting" || r.Location.Country != "NL" {
+		t.Fatalf("got %q / %q", r.Location.Org, r.Location.Country)
+	}
+
+	l := &Location{ASN: "AS64501", Org: "x", Country: "FR"}
+	applyAlias(l)
+	if l.Org != "Plain Net" || l.Country != "FR" {
+		t.Fatalf("alias without country: %q / %q", l.Org, l.Country)
+	}
+
+	w := httptest.NewRecorder()
+	handleAlias(w, httptest.NewRequest("GET", "/api/alias?asn=AS64500", nil))
+	if w.Code != 200 || !strings.Contains(w.Body.String(), `"org":"Example Hosting"`) {
+		t.Fatalf("alias endpoint: %d %s", w.Code, w.Body.String())
+	}
+	w = httptest.NewRecorder()
+	handleAlias(w, httptest.NewRequest("GET", "/api/alias?asn=AS1", nil))
+	if w.Code != 404 {
+		t.Fatalf("unknown asn: %d", w.Code)
 	}
 }
