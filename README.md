@@ -27,7 +27,7 @@ No root needed and nothing is installed. If fio or iperf3 are missing, static bu
 
 **Disk.** fio random read/write (50/50 mix) with 4k, 64k, 512k and 1m blocks, iodepth 64, two jobs, O_DIRECT. Same parameters as yabs, so results line up with what people already post. If fio can't run at all it falls back to a sequential dd test. The result also notes the filesystem and whether the test file sits on NVMe, an SSD, a spinning disk or a virtual disk.
 
-**Network.** iperf3 in both directions, plus ping and packet loss, against 12 public servers: our own in Eygelshoven (NL), London, Amsterdam, Frankfurt, Paris, New York, Dallas, Los Angeles, Sao Paulo, Singapore, Tokyo and Sydney. `-x` adds Hamburg, Chicago, Miami, Montreal and Hong Kong. Tests run over IPv4 and IPv6 if both work. If iperf3 isn't usable, it measures plain HTTP downloads from Hetzner's speedtest servers instead.
+**Network.** iperf3 in both directions, plus ping and packet loss, against 12 public servers: our own in Eygelshoven (NL), London, Amsterdam, Frankfurt, Paris, New York, Dallas, Los Angeles, Sao Paulo, Singapore, Tokyo and Sydney. `-x` adds Hamburg, Chicago, Miami, Montreal and Hong Kong. Tests run over IPv4 and IPv6 if both work. Ctrl+C during the network test skips the remaining locations and keeps the ones that finished. If iperf3 isn't usable, it measures plain HTTP downloads from Hetzner's speedtest servers instead.
 
 ## Options
 
@@ -67,7 +67,7 @@ Without a name the provider name is shown. Only the best run per name, CPU model
 
 ## Sharing
 
-At the end the result is posted to the share server and you get a link like `https://bench.instantnode.eu/r/PVqsFypo`. The page shows everything from the run, and it comes with an Open Graph image so the link unfurls nicely in Discord, Slack or on X.
+At the end the result is posted to the share server and you get a link like `https://bench.instantnode.eu/r/zaJebXoD`. The page shows everything from the run, and it comes with an Open Graph image so the link unfurls nicely in Discord, Slack or on X.
 
 <p align="center"><img src="assets/share.png" alt="result page" width="760"></p>
 

@@ -9,7 +9,7 @@
 # Needs bash 4 and curl. No root, nothing gets installed. fio and iperf3 are
 # fetched into a temp dir if they are missing and removed again at the end.
 
-VERSION="1.1.0"
+VERSION="1.2.0"
 NODEBENCH_URL="${NODEBENCH_URL:-https://bench.instantnode.eu}"
 
 # static fio/iperf3 builds published by the yabs project
@@ -76,6 +76,7 @@ usage: nodebench.sh [options]
   --json        only print the result as json
   -h            this help
 
+Ctrl+C during the network test skips the remaining locations.
 Upload target can be changed with NODEBENCH_URL.
 EOF
 }
@@ -493,7 +494,8 @@ disk_media() {
 	src=$(df -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $1 }')
 	[[ $src == /dev/* ]] || return
 	dev=$(readlink -f "$src")
-	base=$(lsblk -no PKNAME "$dev" 2>/dev/null | head -n1)
+	# walk down through lvm, luks, md raid and partitions to the disk itself
+	base=$(lsblk -srno NAME,TYPE "$dev" 2>/dev/null | awk '$2 == "disk" { print $1; exit }')
 	base=${base:-${dev##*/}}
 	case $base in
 		nvme*) DISK_MEDIA=nvme ;;
@@ -610,7 +612,7 @@ iperf_run() {
 	local extra=("${@:4}")
 	for _ in 1 2 3; do
 		port=$((lo + RANDOM % (hi - lo + 1)))
-		out=$(timeout $((IPERF_TIME + 15)) "$IPERF" -c "$host" -p "$port" -P 8 -t "$IPERF_TIME" \
+		out=$("${TIMEOUT[@]}" $((IPERF_TIME + 15)) "$IPERF" -c "$host" -p "$port" -P 8 -t "$IPERF_TIME" \
 			-"$proto" "${extra[@]}" </dev/null 2>&1)
 		v=$(awk '/\[SUM\].*receiver/ { print $6, $7 }' <<<"$out")
 		if [[ -n $v ]]; then
@@ -637,22 +639,32 @@ net_test() {
 		IPERF=$(fetch_bin "$IPERF_TAG" iperf3)
 	fi
 
+	# without --foreground (busybox) timeout gives iperf3 its own process group
+	# and ctrl+c doesn't reach it
+	TIMEOUT=(timeout --foreground)
+	timeout --foreground 1 true 2>/dev/null || TIMEOUT=(timeout)
+
+	# this is the long part, ctrl+c ends it early and keeps what's done
+	NET_STOP=
+	trap 'NET_STOP=1' INT
 	NET_ROWS=()
 	for p in "${protos[@]}"; do
-		if [[ -n $IPERF ]]; then
+		if [[ -n $IPERF && -z $NET_STOP ]]; then
 			net_iperf "$p"
 		fi
 	done
 	if [[ ${#NET_ROWS[@]} -gt 0 ]]; then
 		NET_TOOL=iperf3
-	else
+	elif [[ -z $NET_STOP ]]; then
 		[[ -n $IPERF ]] && warn "all iperf3 servers failed, trying http downloads instead"
 		for p in "${protos[@]}"; do
-			net_http "$p"
+			[[ -z $NET_STOP ]] && net_http "$p"
 		done
 		NET_TOOL="http download"
 	fi
+	trap 'exit 130' INT
 	clear_status
+	[[ -n $NET_STOP ]] && warn "network test stopped early, showing the locations that finished"
 	print_net
 }
 
@@ -674,12 +686,17 @@ net_iperf() {
 		IFS='|' read -r host ports provider location region <<<"$entry"
 		in_regions "$region" || continue
 		n=$((n + 1))
-		status "net [$n/$total]: $location ($provider), IPv$proto, ping"
+		local at="net $n/$total $location, IPv$proto" hint="$SEP ctrl+c skips the rest"
+		status "$at, ping  $hint"
 		read -r ping loss <<<"$(ping_ms "$host" "$proto")"
-		status "net [$n/$total]: $location ($provider), IPv$proto, upload"
+		[[ -n $NET_STOP ]] && return
+		status "$at, upload  $hint"
 		send=$(iperf_run "$host" "$ports" "$proto")
-		status "net [$n/$total]: $location ($provider), IPv$proto, download"
+		[[ -n $NET_STOP ]] && return
+		status "$at, download  $hint"
 		recv=$(iperf_run "$host" "$ports" "$proto" -R)
+		# a half finished location would show up as a failed download
+		[[ -n $NET_STOP ]] && return
 		[[ -z $send && -z $recv ]] && continue
 		NET_ROWS+=("$proto|$provider|$location|${send:-0}|${recv:-0}|${ping:-0}|${loss:-0}")
 	done
@@ -691,10 +708,11 @@ net_http() {
 		IFS='|' read -r url provider location <<<"$entry"
 		host=${url#*://}
 		host=${host%%/*}
-		status "net: $location ($provider), IPv$proto, download"
+		status "net $location, IPv$proto, download  $SEP ctrl+c skips the rest"
 		read -r ping loss <<<"$(ping_ms "$host" "$proto")"
 		bps=$(curl -s -"$proto" -o /dev/null --connect-timeout 5 --max-time "$IPERF_TIME" \
 			-w '%{speed_download}' "$url" </dev/null)
+		[[ -n $NET_STOP ]] && return
 		[[ -z $bps || $bps == 0 ]] && continue
 		NET_ROWS+=("$proto|$provider|$location|0|$(awk -v b="$bps" 'BEGIN { printf "%.1f", b * 8 / 1e6 }')|${ping:-0}|${loss:-0}")
 	done
@@ -734,11 +752,14 @@ print_summary() {
 		fi
 	fi
 	if [[ -n $DISK_DONE ]]; then
-		local row bs r w ri wi
-		for row in "${DISK_ROWS[@]}"; do
-			read -r bs r w ri wi <<<"$row"
-			[[ $bs == 4k ]] && kv "Disk" "$B$(fmt_iops "$(add "$ri" "$wi")") IOPS$N at 4k, $(fmt_kbs "$(add "$r" "$w")")"
-		done
+		local row=${DISK_ROWS[0]} bs r w ri wi
+		for r in "${DISK_ROWS[@]}"; do [[ $r == "4k "* ]] && row=$r; done
+		read -r bs r w ri wi <<<"$row"
+		if [[ $bs == 4k ]]; then
+			kv "Disk" "$B$(fmt_iops "$(add "$ri" "$wi")") IOPS$N at 4k, $(fmt_kbs "$(add "$r" "$w")")"
+		else
+			kv "Disk" "$B$(fmt_kbs "$(add "$r" "$w")")$N read and write at $bs, $DISK_TOOL"
+		fi
 	fi
 	if [[ -n $NET_DONE ]]; then
 		local proto provider location send recv ping loss best=0 bloc=
@@ -746,7 +767,11 @@ print_summary() {
 			IFS='|' read -r proto provider location send recv ping loss <<<"$row"
 			if awk -v a="$recv" -v b="$best" 'BEGIN { exit !(a > b) }'; then best=$recv; bloc=$location; fi
 		done
-		kv "Network" "$B$(fmt_mbps "$best")$N best download, from $bloc"
+		if [[ -n $bloc ]]; then
+			kv "Network" "$B$(fmt_mbps "$best")$N best download, from $bloc"
+		else
+			kv "Network" "${R}every download failed$N"
+		fi
 	fi
 	kv "Time" "$(( (SECONDS - START) / 60 ))m $(( (SECONDS - START) % 60 ))s${QUICK:+, quick run}"
 }
