@@ -17,6 +17,13 @@ curl -sL https://bench.instantnode.eu | bash
 
 No root needed and nothing is installed. If fio or iperf3 are missing, static builds are downloaded into a temp directory, checked against their sha256 sums and deleted again when the script exits.
 
+If you benchmark the same box more than once, keep it as a `nodebench` command with the same options. Run the line again to update it:
+
+```
+curl -fsSL https://raw.githubusercontent.com/instantnodeeu/nodebench/main/install.sh | sh
+nodebench -q
+```
+
 <p align="center"><img src="assets/terminal.png" alt="nodebench terminal output" width="760"></p>
 
 ## What it measures

@@ -47,6 +47,8 @@
 	<h2 id="faq">Questions</h2>
 	<h3>The network test takes too long</h3>
 	<p>Press Ctrl+C while it runs. The locations that are done stay in the result, the rest is skipped, and the summary and the share link come as usual. Ctrl+C during the cpu or disk test still stops everything. <code>-l eu</code> or <code>-q</code> make it shorter from the start.</p>
+	<h3>Can I keep it on the server?</h3>
+	<p>Yes, <code>curl -fsSL https://raw.githubusercontent.com/instantnodeeu/nodebench/main/install.sh | sh</code> installs it as a <code>nodebench</code> command, in <code>/usr/local/bin</code> as root and in <code>~/.local/bin</code> otherwise. Same options as the one-liner, run the line again to update.</p>
 	<h3>What does it leave behind?</h3>
 	<p>Nothing. The fio and iperf3 builds go into a temp directory that is removed on exit, also on Ctrl+C. The disk test file is deleted as well.</p>
 	<h3>Can I trust the downloaded binaries?</h3>

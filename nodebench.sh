@@ -117,7 +117,7 @@ warn() { printf '  %s!%s %s\n' "$Y" "$N" "$*" >&2; }
 
 rule() {
 	local n=${1:-66} line=
-	while (( n-- > 0 )); do line+=$HL; done
+	while (( n-- > 0 )); do line+="$HL"; done
 	printf '%s' "$line"
 }
 
