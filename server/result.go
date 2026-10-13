@@ -49,6 +49,12 @@ type System struct {
 	Uptime  int64   `json:"uptime_s"`
 }
 
+// stealMeasured: only Linux has steal time to read, macOS and the Windows
+// version send 0.
+func (s System) stealMeasured() bool {
+	return !strings.HasPrefix(s.OS, "macOS") && !strings.HasPrefix(s.OS, "Windows")
+}
+
 type Location struct {
 	ASN     string `json:"asn"`
 	Org     string `json:"org"`

@@ -9,6 +9,9 @@ import (
 // fmtKBs formats fio bandwidth (KiB/s) the way fio and yabs print it.
 func fmtKBs(kbs float64) string {
 	switch {
+	case kbs <= 0:
+		// dd on macOS can't read around the page cache and skips the read
+		return "-"
 	case kbs >= 1024*1024:
 		return fmt.Sprintf("%.2f GB/s", kbs/1024/1024)
 	case kbs >= 1024:
@@ -131,6 +134,10 @@ func virtName(v string) string {
 		return "Xen"
 	case "docker":
 		return "Docker"
+	case "oracle":
+		return "VirtualBox"
+	case "vm":
+		return "VM"
 	}
 	return v
 }

@@ -36,13 +36,14 @@ type cpuRow struct {
 }
 
 type cpuChart struct {
+	Tool       string
 	Threads    int
 	Rows       []cpuRow
 	Steal      string
 	StealClass string
 }
 
-func newCPUChart(c *CPU) *cpuChart {
+func newCPUChart(c *CPU, steal bool) *cpuChart {
 	if c == nil {
 		return nil
 	}
@@ -50,8 +51,11 @@ func newCPUChart(c *CPU) *cpuChart {
 	if top <= 0 {
 		return nil
 	}
-	ch := &cpuChart{Threads: c.Threads}
-	if c.Threads > 1 && c.Steal >= 0 {
+	ch := &cpuChart{Tool: "openssl speed", Threads: c.Threads}
+	if strings.HasPrefix(c.OpenSSL, "Windows") {
+		ch.Tool = c.OpenSSL
+	}
+	if c.Threads > 1 && c.Steal >= 0 && steal {
 		ch.Steal = fmt.Sprintf("%.1f%%", c.Steal)
 		switch {
 		case c.Steal < 1:

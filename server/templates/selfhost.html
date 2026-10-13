@@ -14,7 +14,8 @@
 
 	<h2>Point the script at it</h2>
 	<pre><span class="d">$</span> curl -sL https://bench.example.com | NODEBENCH_URL=https://bench.example.com bash</pre>
-	<p>The server hands out the script itself when it's fetched with curl or wget, so the one-liner works against your host too.</p>
+	<p>The server hands out the script itself when it's fetched with curl or wget, so the one-liner works against your host too. PowerShell gets <code>nodebench.ps1</code> from the same directory as the script:</p>
+	<pre><span class="d">PS&gt;</span> $env:NODEBENCH_URL = "https://bench.example.com"; irm https://bench.example.com | iex</pre>
 
 	<h2>Settings</h2>
 	<div class="pp-spec flags one">
@@ -22,7 +23,7 @@
 			<div><dt>-listen</dt><dd>listen address, default <code>:8080</code> (<code>NODEBENCH_LISTEN</code>)</dd></div>
 			<div><dt>-base</dt><dd>public URL used in share links (<code>NODEBENCH_BASE</code>)</dd></div>
 			<div><dt>-data</dt><dd>where results are stored, default <code>./data</code> (<code>NODEBENCH_DATA</code>)</dd></div>
-			<div><dt>-script</dt><dd>the script served to curl and wget on <code>/</code> (<code>NODEBENCH_SCRIPT</code>)</dd></div>
+			<div><dt>-script</dt><dd>the script served to curl and wget on <code>/</code>, <code>nodebench.ps1</code> next to it goes to PowerShell (<code>NODEBENCH_SCRIPT</code>)</dd></div>
 			<div><dt>-proxy</dt><dd>trust <code>X-Forwarded-For</code>, only behind a proxy (<code>NODEBENCH_PROXY</code>)</dd></div>
 			<div><dt>-rate</dt><dd>uploads per IP per hour, default 20</dd></div>
 			<div><dt>-example</dt><dd>a result id to link from the home page (<code>NODEBENCH_EXAMPLE</code>)</dd></div>

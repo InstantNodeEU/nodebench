@@ -22,7 +22,7 @@
 {{with .CPUChart}}
 <section class="res-sec">
 	<div class="wrap">
-		<div class="row-head"><h2>CPU</h2><p>openssl speed, 16 KiB blocks</p></div>
+		<div class="row-head"><h2>CPU</h2><p>{{.Tool}}, 16 KiB blocks</p></div>
 		{{template "cpu-chart" .}}
 	</div>
 </section>
@@ -31,7 +31,7 @@
 {{with .DiskChart}}
 <section class="res-sec">
 	<div class="wrap">
-		<div class="row-head"><h2>Disk</h2><p>{{.Tool}}{{if eq .Tool "fio"}}, random 50/50 read/write{{end}}, {{.Size}} test file{{with .Device}}, {{.}}{{end}}</p></div>
+		<div class="row-head"><h2>Disk</h2><p>{{.Tool}}{{if ne .Tool "dd"}}, random 50/50 read/write{{end}}, {{.Size}} test file{{with .Device}}, {{.}}{{end}}</p></div>
 		{{template "disk-chart" .}}
 	</div>
 </section>

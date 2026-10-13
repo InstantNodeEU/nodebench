@@ -15,3 +15,63 @@ jobs:
       - run: go vet ./... && go test ./...
         working-directory: server
       - run: shellcheck -S warning nodebench.sh
+      - name: parse nodebench.ps1
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD/nodebench.ps1", [ref]$null, [ref]$errors)
+          if ($errors) { $errors; exit 1 }
+
+  # a quick run on a real mac with the bash 3.2 apple ships, uploaded to a
+  # local share server so the result has to pass its validation
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+      - name: start the share server
+        working-directory: server
+        run: |
+          go build -o "$RUNNER_TEMP/nb" .
+          nohup "$RUNNER_TEMP/nb" -listen 127.0.0.1:8080 -data "$RUNNER_TEMP/data" -script ../nodebench.sh >"$RUNNER_TEMP/nb.log" 2>&1 &
+          sleep 2
+      - name: run nodebench.sh with /bin/bash
+        env:
+          NODEBENCH_URL: http://127.0.0.1:8080
+        run: |
+          /bin/bash --version | head -n1
+          /bin/bash nodebench.sh -q -n | tee out.txt
+          grep -q '/r/' out.txt
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+      - name: start the share server
+        shell: pwsh
+        working-directory: server
+        run: |
+          go build -o nb.exe .
+          Start-Process -FilePath .\nb.exe -ArgumentList '-listen', '127.0.0.1:8080', '-data', "$env:RUNNER_TEMP\data", '-script', '..\nodebench.sh'
+          Start-Sleep 2
+      - name: run nodebench.ps1 in Windows PowerShell 5.1
+        shell: powershell
+        env:
+          NODEBENCH_URL: http://127.0.0.1:8080
+        run: |
+          $out = & ([scriptblock]::Create((Get-Content -Raw .\nodebench.ps1))) -q -n 6>&1 | Out-String
+          $out
+          if ($out -notmatch '/r/') { exit 1 }
+      - name: fetch it from the server like a user, PowerShell 7
+        shell: pwsh
+        env:
+          NODEBENCH_URL: http://127.0.0.1:8080
+        run: |
+          $out = & ([scriptblock]::Create((irm http://127.0.0.1:8080))) -q -n -c 6>&1 | Out-String
+          $out
+          if ($out -notmatch '/r/') { exit 1 }

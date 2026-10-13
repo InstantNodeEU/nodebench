@@ -27,7 +27,7 @@ func (s *server) view(r *Result) resultView {
 	sys := r.System
 	v := resultView{
 		R:         r,
-		CPUChart:  newCPUChart(r.CPU),
+		CPUChart:  newCPUChart(r.CPU, sys.stealMeasured()),
 		DiskChart: newDiskChart(r.Disk),
 		NetChart:  newNetChart(r),
 		URL:       *baseURL + "/r/" + r.ID,

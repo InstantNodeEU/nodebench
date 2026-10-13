@@ -4,6 +4,7 @@ Setup on Debian with systemd and nginx, roughly:
 cd server && go build -trimpath -ldflags="-s -w" -o nodebench-server .
 install -m 755 nodebench-server /usr/local/bin/
 install -Dm 644 ../nodebench.sh /usr/local/share/nodebench/nodebench.sh
+install -Dm 644 ../nodebench.ps1 /usr/local/share/nodebench/nodebench.ps1
 install -m 644 ../deploy/nodebench.service /etc/systemd/system/
 systemctl daemon-reload && systemctl enable --now nodebench
 

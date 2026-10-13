@@ -38,7 +38,7 @@ var (
 	listen  = flag.String("listen", env("NODEBENCH_LISTEN", ":8080"), "listen address")
 	dataDir = flag.String("data", env("NODEBENCH_DATA", "./data"), "directory for stored results")
 	baseURL = flag.String("base", env("NODEBENCH_BASE", "http://localhost:8080"), "public base url, used for share links")
-	script  = flag.String("script", env("NODEBENCH_SCRIPT", "../nodebench.sh"), "path to nodebench.sh, served to curl and wget")
+	script  = flag.String("script", env("NODEBENCH_SCRIPT", "../nodebench.sh"), "path to nodebench.sh, served to curl and wget (nodebench.ps1 next to it goes to PowerShell)")
 	proxied = flag.Bool("proxy", env("NODEBENCH_PROXY", "") != "", "trust X-Forwarded-For (only behind a reverse proxy)")
 	perHour = flag.Int("rate", 20, "max uploads per ip per hour")
 	example = flag.String("example", env("NODEBENCH_EXAMPLE", ""), "result id shown as the example on the landing page")
@@ -137,21 +137,34 @@ func (s *server) oneLiner() string {
 	return "curl -sL " + strings.TrimPrefix(strings.TrimPrefix(*baseURL, "https://"), "http://") + " | bash"
 }
 
+// winLiner is the same for Windows, irm sends a PowerShell user agent
+func (s *server) winLiner() string {
+	return "irm " + *baseURL + " | iex"
+}
+
 func (s *server) handleIndex(w http.ResponseWriter, r *http.Request) {
 	ua := strings.ToLower(r.UserAgent())
-	if strings.HasPrefix(ua, "curl/") || strings.HasPrefix(ua, "wget/") {
-		f, err := os.Open(*script)
-		if err != nil {
-			log.Printf("script: %v", err)
-			http.Error(w, "script not available", http.StatusInternalServerError)
-			return
-		}
-		defer f.Close()
-		w.Header().Set("Content-Type", "text/x-shellscript; charset=utf-8")
-		io.Copy(w, f)
+	switch {
+	case strings.HasPrefix(ua, "curl/") || strings.HasPrefix(ua, "wget/"):
+		serveScript(w, *script, "text/x-shellscript; charset=utf-8")
+	case strings.Contains(ua, "powershell/"):
+		// text/plain, so irm hands iex a string
+		serveScript(w, strings.TrimSuffix(*script, ".sh")+".ps1", "text/plain; charset=utf-8")
+	default:
+		s.handlePage("home")(w, r)
+	}
+}
+
+func serveScript(w http.ResponseWriter, path, ctype string) {
+	f, err := os.Open(path)
+	if err != nil {
+		log.Printf("script: %v", err)
+		http.Error(w, "script not available", http.StatusInternalServerError)
 		return
 	}
-	s.handlePage("home")(w, r)
+	defer f.Close()
+	w.Header().Set("Content-Type", ctype)
+	io.Copy(w, f)
 }
 
 func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {

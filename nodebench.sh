@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
 #
-# nodebench - cpu, disk and network benchmark for linux servers
+# nodebench - cpu, disk and network benchmark for servers, desktops and laptops
 # https://github.com/instantnodeeu/nodebench
 #
 #   curl -sL https://bench.instantnode.eu | bash
 #   curl -sL https://bench.instantnode.eu | bash -s -- -n --no-share
 #
-# Needs bash 4 and curl. No root, nothing gets installed. fio and iperf3 are
-# fetched into a temp dir if they are missing and removed again at the end.
+# Runs on Linux and macOS, needs bash (3.2 is enough) and curl. No root,
+# nothing gets installed. On Linux fio and iperf3 are fetched into a temp dir
+# if they are missing and removed again at the end. Windows has its own
+# PowerShell version, nodebench.ps1.
 
-VERSION="1.2.0"
+VERSION="1.3.0"
 NODEBENCH_URL="${NODEBENCH_URL:-https://bench.instantnode.eu}"
 
 # static fio/iperf3 builds published by the yabs project
@@ -179,7 +181,8 @@ speed() {
 fmt_bytes() { awk -v v="$1" 'BEGIN { if (v >= 1e9) printf "%.2f GB/s", v/1e9; else printf "%.0f MB/s", v/1e6 }'; }
 fmt_kbs() {
 	awk -v v="$1" 'BEGIN {
-		if (v >= 1048576) printf "%.2f GB/s", v/1048576
+		if (v <= 0) printf "-"
+		else if (v >= 1048576) printf "%.2f GB/s", v/1048576
 		else if (v >= 1024) printf "%.1f MB/s", v/1024
 		else printf "%.0f KB/s", v }'
 }
@@ -214,7 +217,79 @@ jbool() {
 
 # --- system info ------------------------------------------------------------
 
+ncpu() { nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1; }
+
 collect_system() {
+	SYS_CORES=$(ncpu)
+	if [[ $OS == Darwin ]]; then
+		collect_darwin
+	else
+		collect_linux
+	fi
+
+	HAS_V4=; HAS_V6=
+	curl -s4 -o /dev/null --max-time 5 https://www.cloudflare.com/cdn-cgi/trace && HAS_V4=1
+	curl -s6 -o /dev/null --max-time 5 https://www.cloudflare.com/cdn-cgi/trace && HAS_V6=1
+
+	LOC_ASN=; LOC_ORG=; LOC_COUNTRY=
+	local info
+	info=$(curl -s --max-time 5 https://ipinfo.io/json)
+	if [[ -n $info ]]; then
+		local org
+		org=$(json_field org <<<"$info")
+		if [[ $org == AS* ]]; then
+			LOC_ASN=${org%% *}
+			LOC_ORG=${org#* }
+		else
+			LOC_ORG=$org
+		fi
+		LOC_COUNTRY=$(json_field country <<<"$info")
+	fi
+	# the share server may know a better name for this network, ask with the asn only
+	if [[ -n $SHARE && $LOC_ASN == AS* ]]; then
+		local alias
+		alias=$(curl -s --max-time 3 "$NODEBENCH_URL/api/alias?asn=$LOC_ASN")
+		if [[ $alias == *'"org"'* ]]; then
+			LOC_ORG=$(sed -n 's/.*"org":"\([^"]*\)".*/\1/p' <<<"$alias")
+			local cc
+			cc=$(sed -n 's/.*"country":"\([A-Z]*\)".*/\1/p' <<<"$alias")
+			[[ -n $cc ]] && LOC_COUNTRY=$cc
+		fi
+	fi
+}
+
+collect_darwin() {
+	SYS_OS="$(sw_vers -productName) $(sw_vers -productVersion)"
+	SYS_KERNEL=$(uname -sr)
+	SYS_ARCH=$(uname -m)
+	SYS_CPU=$(sysctl -n machdep.cpu.brand_string 2>/dev/null)
+	SYS_CPU=${SYS_CPU:-unknown}
+	# intel macs only, apple silicon doesn't report a clock
+	SYS_MHZ=$(sysctl -n hw.cpufrequency_max 2>/dev/null)
+	[[ -n $SYS_MHZ ]] && SYS_MHZ=$((SYS_MHZ / 1000000))
+
+	SYS_AES=; SYS_VMX=
+	if [[ $(sysctl -n hw.optional.arm.FEAT_AES 2>/dev/null) == 1 ]] ||
+		sysctl -n machdep.cpu.features 2>/dev/null | grep -qw AES; then
+		SYS_AES=1
+	fi
+	[[ $(sysctl -n kern.hv_support 2>/dev/null) == 1 ]] && SYS_VMX=1
+	SYS_VIRT=none
+	[[ $(sysctl -n kern.hv_vmm_present 2>/dev/null) == 1 ]] && SYS_VIRT=vm
+
+	SYS_RAM=$(( $(sysctl -n hw.memsize) / 1024 ))
+	# "total = 2048.00M  used = ..."
+	SYS_SWAP=$(sysctl -n vm.swapusage 2>/dev/null | awk '{ v = $3; u = substr(v, length(v)); v += 0
+		if (u == "G") v *= 1048576; else if (u == "M") v *= 1024; printf "%.0f", v }')
+	# apfs volumes share one container, the root volume reports its size
+	SYS_DISK=$(df -k -P / | awk 'NR == 2 { print $2 }')
+	local boot
+	# "{ sec = 1760000000, usec = 123 } Mon Oct ..."
+	boot=$(sysctl -n kern.boottime | sed 's/^{ sec = \([0-9]*\).*/\1/')
+	SYS_UPTIME=$(( $(date +%s) - boot ))
+}
+
+collect_linux() {
 	SYS_OS="Linux"
 	if [[ -r /etc/os-release ]]; then
 		# shellcheck disable=SC1091
@@ -222,7 +297,6 @@ collect_system() {
 	fi
 	SYS_KERNEL=$(uname -r)
 	SYS_ARCH=$(uname -m)
-	SYS_CORES=$(nproc 2>/dev/null || grep -c ^processor /proc/cpuinfo)
 
 	SYS_CPU=$(awk -F': *' '/^model name/ { print $2; exit }' /proc/cpuinfo)
 	if [[ -z $SYS_CPU ]] && command -v lscpu >/dev/null; then
@@ -268,36 +342,6 @@ collect_system() {
 	fi
 
 	SYS_UPTIME=$(awk '{ printf "%d", $1 }' /proc/uptime)
-
-	HAS_V4=; HAS_V6=
-	curl -s4 -o /dev/null --max-time 5 https://www.cloudflare.com/cdn-cgi/trace && HAS_V4=1
-	curl -s6 -o /dev/null --max-time 5 https://www.cloudflare.com/cdn-cgi/trace && HAS_V6=1
-
-	LOC_ASN=; LOC_ORG=; LOC_COUNTRY=
-	local info
-	info=$(curl -s --max-time 5 https://ipinfo.io/json)
-	if [[ -n $info ]]; then
-		local org
-		org=$(json_field org <<<"$info")
-		if [[ $org == AS* ]]; then
-			LOC_ASN=${org%% *}
-			LOC_ORG=${org#* }
-		else
-			LOC_ORG=$org
-		fi
-		LOC_COUNTRY=$(json_field country <<<"$info")
-	fi
-	# the share server may know a better name for this network, ask with the asn only
-	if [[ -n $SHARE && $LOC_ASN == AS* ]]; then
-		local alias
-		alias=$(curl -s --max-time 3 "$NODEBENCH_URL/api/alias?asn=$LOC_ASN")
-		if [[ $alias == *'"org"'* ]]; then
-			LOC_ORG=$(sed -n 's/.*"org":"\([^"]*\)".*/\1/p' <<<"$alias")
-			local cc
-			cc=$(sed -n 's/.*"country":"\([A-Z]*\)".*/\1/p' <<<"$alias")
-			[[ -n $cc ]] && LOC_COUNTRY=$cc
-		fi
-	fi
 }
 
 # good enough for ipinfo's flat, one key per line output
@@ -341,6 +385,7 @@ bin_arch() {
 # against the release checksum file when sha256sum is around.
 fetch_bin() {
 	local tag=$1 name=$2 arch file sums want
+	[[ $OS == Linux ]] || return 1
 	arch=$(bin_arch) || return 1
 	file="$WORK/$name"
 	curl -sfL --retry 3 --connect-timeout 5 -o "$file" "$BIN_URL/$tag/${name}_$arch" || return 1
@@ -362,15 +407,19 @@ fetch_bin() {
 
 # cpu_ticks prints "steal total" summed over all cpus from /proc/stat
 cpu_ticks() {
+	[[ -r /proc/stat ]] || return 0
 	awk '/^cpu / { t = 0; for (i = 2; i <= NF; i++) t += $i; print $9 + 0, t; exit }' /proc/stat
 }
 
 # ossl_speed <threads> <algorithm>, prints bytes per second
 ossl_speed() {
-	local multi=()
+	local multi=() out
 	(( $1 > 1 )) && multi=(-multi "$1")
-	openssl speed -mr "${multi[@]}" -seconds "$CPU_TIME" -bytes 16384 -evp "$2" </dev/null 2>/dev/null |
-		grep '^+F:' | tail -n1 | cut -d: -f4
+	out=$(openssl speed -mr "${multi[@]}" -seconds "$CPU_TIME" -bytes 16384 -evp "$2" </dev/null 2>/dev/null)
+	# libressl (macos) knows neither option: it runs its default sizes for 3s
+	# each and the largest block is 8 KiB, close enough for these two
+	[[ $out == *+F:* ]] || out=$(openssl speed -mr "${multi[@]}" -evp "$2" </dev/null 2>/dev/null)
+	awk -F: '/^\+F:/ { v = $NF } END { print v }' <<<"$out"
 }
 
 cpu_test() {
@@ -396,7 +445,7 @@ cpu_test() {
 		CPU_SHA_N=$(ossl_speed "$THREADS" sha256)
 		after=$(cpu_ticks)
 		# share of time the hypervisor gave our cores to someone else
-		CPU_STEAL=$(awk -v a="$before" -v b="$after" 'BEGIN {
+		[[ -n $before ]] && CPU_STEAL=$(awk -v a="$before" -v b="$after" 'BEGIN {
 			split(a, x, " "); split(b, y, " ")
 			d = y[2] - x[2]; if (d <= 0) { print 0; exit }
 			printf "%.1f", (y[1] - x[1]) / d * 100 }')
@@ -428,7 +477,7 @@ cpu_test() {
 	if (( THREADS > 1 )); then
 		say ""
 		kv "Scaling" "$A$(awk -v s="$CPU_SHA" -v n="$CPU_SHA_N" 'BEGIN { if (s > 0) printf "%.1fx", n / s }')$N from 1 to $THREADS threads"
-		kv "Steal time" "${CPU_STEAL:-0}% during the $THREADS thread run"
+		[[ -n $CPU_STEAL ]] && kv "Steal time" "$CPU_STEAL% during the $THREADS thread run"
 	fi
 }
 
@@ -475,7 +524,7 @@ disk_test() {
 		disk_fio "$fio"
 	else
 		clear_status
-		warn "fio not available, falling back to dd (sequential only)"
+		warn "fio not available, falling back to dd (sequential only)${MAC_HINT:+, brew install fio for the full test}"
 		disk_dd
 	fi
 	rm -f "$TESTFILE"
@@ -486,8 +535,12 @@ disk_test() {
 # behind them, so those are just called virtual.
 disk_media() {
 	local src dev base
-	DISK_FS=$(df -T -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $2 }')
 	DISK_MEDIA=
+	if [[ $OS == Darwin ]]; then
+		disk_media_darwin
+		return
+	fi
+	DISK_FS=$(df -T -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $2 }')
 	if [[ $DISK_FS == tmpfs || $DISK_FS == ramfs ]]; then
 		warn "$DIR is $DISK_FS, so the disk test measures memory. Use -d to point it at a real disk."
 	fi
@@ -508,9 +561,25 @@ disk_media() {
 	esac
 }
 
+disk_media_darwin() {
+	local src info
+	src=$(df -P "$DIR" 2>/dev/null | awk 'NR == 2 { print $1 }')
+	[[ $src == /dev/* ]] || return
+	# "/dev/disk3s5 on /System/Volumes/Data (apfs, local, journaled, nobrowse)"
+	DISK_FS=$(mount | sed -n "s|^$src on .* (\([a-z0-9]*\),.*|\1|p" | head -n1)
+	info=$(diskutil info "$src" 2>/dev/null)
+	case $info in
+		*"Protocol:"*"PCI-Express"* | *"Protocol:"*"Apple Fabric"* | *"Protocol:"*NVM*) DISK_MEDIA=nvme ;;
+		*"Solid State:"*Yes*) DISK_MEDIA=ssd ;;
+		*"Solid State:"*No*) DISK_MEDIA=hdd ;;
+	esac
+}
+
 disk_fio() {
-	local fio=$1 engine=libaio direct=1 bs out
-	"$fio" --enghelp 2>/dev/null | grep -qw libaio || engine=psync
+	local fio=$1 engine=psync direct=1 bs out engines
+	engines=$("$fio" --enghelp 2>/dev/null)
+	# libaio on linux, posixaio is what a homebrew fio on macos has
+	if grep -qw libaio <<<"$engines"; then engine=libaio; elif grep -qw posixaio <<<"$engines"; then engine=posixaio; fi
 
 	# lay the file out once so the timed runs don't include it
 	status "disk: writing $SIZE test file"
@@ -538,24 +607,36 @@ disk_fio() {
 	print_disk "fio, random 50/50 read/write, $SIZE file"
 }
 
+# now_ns: macos date has no %N, perl is always there
+now_ns() {
+	local t
+	t=$(date +%s%N)
+	[[ $t == *N ]] && t=$(perl -MTime::HiRes=time -e 'printf "%.0f", time * 1e9')
+	echo "$t"
+}
+
 disk_dd() {
-	local count=$(( $(size_kib "$SIZE") / 1024 )) t0 t1 w r
+	local count=$(( $(size_kib "$SIZE") / 1024 )) t0 t1 w r=0
 	DISK_TOOL="dd"
 	DISK_ROWS=()
 
+	# bs in bytes, bsd dd doesn't take 1M; without oflag/conv (bsd again) a
+	# sync inside the timed part keeps the page cache out of it
 	status "disk: dd sequential write"
-	t0=$(date +%s%N)
-	dd if=/dev/zero of="$TESTFILE" bs=1M count="$count" oflag=direct conv=fdatasync 2>/dev/null ||
-		dd if=/dev/zero of="$TESTFILE" bs=1M count="$count" conv=fdatasync 2>/dev/null
-	t1=$(date +%s%N)
+	t0=$(now_ns)
+	dd if=/dev/zero of="$TESTFILE" bs=1048576 count="$count" oflag=direct conv=fdatasync 2>/dev/null ||
+		dd if=/dev/zero of="$TESTFILE" bs=1048576 count="$count" conv=fdatasync 2>/dev/null ||
+		{ dd if=/dev/zero of="$TESTFILE" bs=1048576 count="$count" 2>/dev/null && sync; }
+	t1=$(now_ns)
 	w=$(awk -v c="$count" -v ns=$((t1 - t0)) 'BEGIN { printf "%.0f", c * 1024 / (ns / 1e9) }')
 
+	# a read without O_DIRECT comes straight from the page cache, skip it then
 	status "disk: dd sequential read"
-	t0=$(date +%s%N)
-	dd if="$TESTFILE" of=/dev/null bs=1M iflag=direct 2>/dev/null ||
-		dd if="$TESTFILE" of=/dev/null bs=1M 2>/dev/null
-	t1=$(date +%s%N)
-	r=$(awk -v c="$count" -v ns=$((t1 - t0)) 'BEGIN { printf "%.0f", c * 1024 / (ns / 1e9) }')
+	t0=$(now_ns)
+	if dd if="$TESTFILE" of=/dev/null bs=1048576 iflag=direct 2>/dev/null; then
+		t1=$(now_ns)
+		r=$(awk -v c="$count" -v ns=$((t1 - t0)) 'BEGIN { printf "%.0f", c * 1024 / (ns / 1e9) }')
+	fi
 
 	clear_status
 	DISK_ROWS=("1m $r $w $((r / 1024)) $((w / 1024))")
@@ -594,12 +675,16 @@ to_mbps() {
 
 # ping_ms <host> <proto> prints "avg_ms loss_pct"
 ping_ms() {
-	local out avg loss
+	local out avg loss v6=ping6
 	out=$(ping -"$2" -c 6 -i 0.3 -W 2 "$1" </dev/null 2>/dev/null)
-	# old iputils has no -4, plain ping is v4 there
+	# old iputils and macos have no -4, plain ping is v4 there (-W is in ms on
+	# macos, but it only matters when nothing comes back at all)
 	[[ -z $out && $2 == 4 ]] && out=$(ping -c 6 -i 0.3 -W 2 "$1" </dev/null 2>/dev/null)
-	# busybox ping has no -i
-	[[ -z $out ]] && out=$(ping -c 4 -W 2 "$1" </dev/null 2>/dev/null)
+	# macos and older iputils do v6 with ping6, busybox ping has no -i
+	command -v ping6 >/dev/null || v6="ping -6"
+	[[ -z $out && $2 == 6 ]] && out=$($v6 -c 6 -i 0.3 "$1" </dev/null 2>/dev/null)
+	[[ -z $out && $2 == 6 ]] && out=$($v6 -c 4 "$1" </dev/null 2>/dev/null)
+	[[ -z $out && $2 == 4 ]] && out=$(ping -c 4 -W 2 "$1" </dev/null 2>/dev/null)
 	[[ -z $out ]] && return
 	avg=$(sed -n 's/.*= [0-9.]*\/\([0-9.]*\)\/.*/\1/p' <<<"$out")
 	loss=$(sed -n 's/.* \([0-9.]*\)% packet loss.*/\1/p' <<<"$out")
@@ -612,7 +697,7 @@ iperf_run() {
 	local extra=("${@:4}")
 	for _ in 1 2 3; do
 		port=$((lo + RANDOM % (hi - lo + 1)))
-		out=$("${TIMEOUT[@]}" $((IPERF_TIME + 15)) "$IPERF" -c "$host" -p "$port" -P 8 -t "$IPERF_TIME" \
+		out=$("${TIMEOUT[@]}" "$IPERF" -c "$host" -p "$port" -P 8 -t "$IPERF_TIME" \
 			-"$proto" "${extra[@]}" </dev/null 2>&1)
 		v=$(awk '/\[SUM\].*receiver/ { print $6, $7 }' <<<"$out")
 		if [[ -n $v ]]; then
@@ -637,12 +722,20 @@ net_test() {
 	if [[ -z $IPERF ]]; then
 		status "net: fetching iperf3"
 		IPERF=$(fetch_bin "$IPERF_TAG" iperf3)
+		[[ -z $IPERF && -n $MAC_HINT ]] && warn "iperf3 not found, measuring downloads only. brew install iperf3 for the full test"
 	fi
 
 	# without --foreground (busybox) timeout gives iperf3 its own process group
-	# and ctrl+c doesn't reach it
-	TIMEOUT=(timeout --foreground)
-	timeout --foreground 1 true 2>/dev/null || TIMEOUT=(timeout)
+	# and ctrl+c doesn't reach it. macos has no timeout at all, perl's alarm
+	# survives the exec and does the same.
+	local limit=$((IPERF_TIME + 15))
+	if timeout --foreground 1 true 2>/dev/null; then
+		TIMEOUT=(timeout --foreground "$limit")
+	elif command -v timeout >/dev/null; then
+		TIMEOUT=(timeout "$limit")
+	else
+		TIMEOUT=(perl -e 'alarm shift; exec @ARGV' "$limit")
+	fi
 
 	# this is the long part, ctrl+c ends it early and keeps what's done
 	NET_STOP=
@@ -758,7 +851,9 @@ print_summary() {
 		if [[ $bs == 4k ]]; then
 			kv "Disk" "$B$(fmt_iops "$(add "$ri" "$wi")") IOPS$N at 4k, $(fmt_kbs "$(add "$r" "$w")")"
 		else
-			kv "Disk" "$B$(fmt_kbs "$(add "$r" "$w")")$N read and write at $bs, $DISK_TOOL"
+			local what="read and write"
+			[[ $r == 0 ]] && what="write"
+			kv "Disk" "$B$(fmt_kbs "$(add "$r" "$w")")$N $what at $bs, $DISK_TOOL"
 		fi
 	fi
 	if [[ -n $NET_DONE ]]; then
@@ -865,7 +960,10 @@ main() {
 	local size_set=
 	DIR=$PWD
 	SIZE=2G
-	THREADS=$(nproc 2>/dev/null || echo 1)
+	THREADS=$(ncpu)
+	OS=$(uname -s)
+	MAC_HINT=
+	[[ $OS == Darwin ]] && command -v brew >/dev/null && MAC_HINT=1
 
 	while [[ $# -gt 0 ]]; do
 		case $1 in
@@ -927,6 +1025,12 @@ main() {
 		exec 3>&1
 	fi
 
+	case $OS in
+		MINGW* | MSYS* | CYGWIN*)
+			warn "on Windows, run nodebench in PowerShell: irm $NODEBENCH_URL | iex"
+			exit 1
+			;;
+	esac
 	if ! command -v curl >/dev/null; then
 		warn "nodebench needs curl"
 		exit 1

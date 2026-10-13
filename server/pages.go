@@ -21,12 +21,13 @@ type page struct {
 	OGW, OGH int
 	Base     string
 	OneLiner string
+	WinLiner string
 	CSSVer   string
 	Data     any
 }
 
 var pageMeta = map[string]struct{ title, desc string }{
-	"home":        {"nodebench - benchmark a Linux server in one line", "CPU, disk and network benchmark for Linux servers. One command, no root, nothing left behind, and a link you can share."},
+	"home":        {"nodebench - benchmark any server or computer in one line", "CPU, disk and network benchmark for Linux, macOS and Windows. One command, no root, nothing left behind, and a link you can share."},
 	"docs":        {"How it works - nodebench", "What nodebench measures, how, every option, and answers to the usual questions."},
 	"locations":   {"Test locations - nodebench", "The iperf3 servers nodebench tests against, on four continents."},
 	"leaderboard": {"Leaderboard - nodebench", "Self-reported nodebench results, ranked by CPU, disk and network."},
@@ -72,6 +73,7 @@ func (s *server) render(w http.ResponseWriter, name string, p page) {
 	p.Name = name
 	p.Base = *baseURL
 	p.OneLiner = s.oneLiner()
+	p.WinLiner = s.winLiner()
 	p.CSSVer = s.cssVer
 	if m := pageMeta[name]; p.Title == "" {
 		p.Title, p.Desc = m.title, m.desc
@@ -109,6 +111,7 @@ type change struct{ Date, Text string }
 
 // changelog is short on purpose, the git log has the details.
 var changelog = []change{
+	{"2026-10-13", "1.3.0: runs on macOS, and a Windows version for PowerShell"},
 	{"2026-10-07", "1.1.0: steal time, disk type, packet loss, -q quick runs, -l regions, -x for 17 locations"},
 	{"2026-10-07", "Opt-in leaderboard with -L"},
 	{"2026-10-07", "The city is no longer stored or shown, also for older results"},

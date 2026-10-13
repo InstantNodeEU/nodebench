@@ -6,22 +6,32 @@
 
 <div class="prose">
 	<h2>System info</h2>
-	<p>CPU model, cores and clock, the AES-NI and VM-x flags, the virtualization type (from <code>systemd-detect-virt</code> with a few fallbacks for LXC, OpenVZ and plain VMs), RAM, swap, disk size, distro, kernel and uptime. IPv4 and IPv6 are checked with a request to Cloudflare, and the provider name, ASN and country come from ipinfo.io.</p>
+	<p>CPU model, cores and clock, the AES-NI and VM-x flags, the virtualization type (from <code>systemd-detect-virt</code> with a few fallbacks for LXC, OpenVZ and plain VMs), RAM, swap, disk size, distro, kernel and uptime. IPv4 and IPv6 are checked with a request to Cloudflare, and the provider name, ASN and country come from ipinfo.io. On macOS the same comes from <code>sysctl</code> and <code>sw_vers</code>, on Windows from WMI.</p>
+
+	<h2 id="platforms">Linux, macOS and Windows</h2>
+	<p>On Linux and macOS it's the same bash script. macOS ships an old bash and BSD tools, nodebench gets along with both. On Windows there is a PowerShell version with the same options and the same result format, it runs in Windows PowerShell 5.1 and PowerShell 7 without admin rights:</p>
+	<div class="cmd ps"><code id="exw">{{.WinLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="exw">Copy</button></div>
+	<p>Where the tools differ, it's said below. Results from all three end up on the same pages and the same leaderboard.</p>
 
 	<h2>CPU</h2>
 	<p><code>openssl speed</code> with sha256 and aes-256-gcm on 16 KiB blocks, once on a single thread and once with <code>-multi</code> on all cores, 5 seconds each. It's not Geekbench, and that's on purpose: openssl is on nearly every server, the run is short and the numbers are easy to compare. sha256 is plain integer work, aes-256-gcm shows how good the crypto extensions are.</p>
-	<p>The ratio between one and all threads tells you how well the cores scale. During the run on all threads nodebench also reads the steal time from <code>/proc/stat</code>: the share of CPU time the hypervisor handed to other guests while this one wanted it. On a dedicated server or a well kept VPS it stays close to 0%. A few percent is normal on shared hosts. More than that means you're not getting the cores you see.</p>
+	<p>macOS comes with LibreSSL instead of OpenSSL, which can't be told the block size or the run time. It runs its standard sizes for 3 seconds each and nodebench takes the largest, 8 KiB, so the cpu test takes about a minute there. Windows has no openssl at all: the same two algorithms run through the crypto library built into Windows (CNG) on 16 KiB blocks. Both use the CPU's crypto instructions the way openssl does, so the numbers are close, not identical.</p>
+	<p>The ratio between one and all threads tells you how well the cores scale. During the run on all threads nodebench also reads the steal time from <code>/proc/stat</code> (Linux only): the share of CPU time the hypervisor handed to other guests while this one wanted it. On a dedicated server or a well kept VPS it stays close to 0%. A few percent is normal on shared hosts. More than that means you're not getting the cores you see.</p>
 
 	<h2>Disk</h2>
 	<p>fio random read/write, 50/50 mix, with 4k, 64k, 512k and 1m blocks, iodepth 64, two jobs, O_DIRECT, 20 seconds per block size, on a 2 GB file in the current directory. These are the parameters yabs uses. 4k is about IOPS, the small random access a database does. 1m is close to raw throughput. If fio can't run at all, a sequential dd test is used and the result says so.</p>
+	<p>On Windows it's Microsoft's <a href="https://github.com/microsoft/diskspd">diskspd</a> with the same settings: two threads, 64 I/Os in flight each, 50/50 random read/write, unbuffered. On macOS fio is used when it's installed (<code>brew install fio</code>), otherwise dd, and dd only measures the write there, because a read on macOS can't get past the page cache.</p>
 	<p>The result also notes the filesystem and what kind of device the file sits on: NVMe, SSD, spinning disk or a virtual disk. Virtual disks always report themselves as spinning, so nodebench doesn't guess what's behind them.</p>
 
 	<h2>Network</h2>
 	<p>iperf3 in both directions with 8 parallel streams for 10 seconds, plus ping and packet loss, against {{.Data.Sites}} public servers (<a href="/locations">list</a>), or all {{.Data.Total}} with <code>-x</code>. Over IPv4, and IPv6 as well when the server has it. A busy server gets up to three tries on random ports from its range. A direction that still fails is shown as failed, not as zero. If iperf3 can't connect anywhere, plain HTTP downloads are measured instead.</p>
+	<p>On Windows a Windows build of iperf3 is downloaded for the run. On macOS an installed iperf3 is used (<code>brew install iperf3</code>), without it nodebench measures the HTTP downloads.</p>
 
 	<h2>Options</h2>
 	<p>Pass them after <code>bash -s --</code>:</p>
 	<div class="cmd"><code id="ex1">{{.OneLiner}} -s -- -n --no-share</code><button class="btn btn-light btn-sm" type="button" data-copy="ex1">Copy</button></div>
+	<p>In PowerShell, <code>iex</code> can't take options, so the script is turned into a script block first:</p>
+	<div class="cmd ps"><code id="ex2">&amp; ([scriptblock]::Create((irm {{.Base}}))) -n --no-share</code><button class="btn btn-light btn-sm" type="button" data-copy="ex2">Copy</button></div>
 	<div class="pp-spec flags one">
 		<dl>
 			<div><dt>-c</dt><dd>skip the cpu test</dd></div>
@@ -46,13 +56,13 @@
 
 	<h2 id="faq">Questions</h2>
 	<h3>The network test takes too long</h3>
-	<p>Press Ctrl+C while it runs. The locations that are done stay in the result, the rest is skipped, and the summary and the share link come as usual. Ctrl+C during the cpu or disk test still stops everything. <code>-l eu</code> or <code>-q</code> make it shorter from the start.</p>
+	<p>Press Ctrl+C while it runs. The locations that are done stay in the result, the rest is skipped, and the summary and the share link come as usual. Ctrl+C during the cpu or disk test still stops everything, and on Windows Ctrl+C always ends the whole run. <code>-l eu</code> or <code>-q</code> make it shorter from the start.</p>
 	<h3>Can I keep it on the server?</h3>
 	<p>Yes, <code>curl -fsSL https://raw.githubusercontent.com/instantnodeeu/nodebench/main/install.sh | sh</code> installs it as a <code>nodebench</code> command, in <code>/usr/local/bin</code> as root and in <code>~/.local/bin</code> otherwise. Same options as the one-liner, run the line again to update.</p>
 	<h3>What does it leave behind?</h3>
 	<p>Nothing. The fio and iperf3 builds go into a temp directory that is removed on exit, also on Ctrl+C. The disk test file is deleted as well.</p>
 	<h3>Can I trust the downloaded binaries?</h3>
-	<p>They are the static builds published by the yabs project, pinned to one release. When <code>sha256sum</code> is available, each binary is checked against the checksum file of that release and not run if it doesn't match. fio and iperf3 from your system are used first if they're installed.</p>
+	<p>They are the static builds published by the yabs project, pinned to one release. When <code>sha256sum</code> is available, each binary is checked against the checksum file of that release and not run if it doesn't match. fio and iperf3 from your system are used first if they're installed. On Windows, diskspd comes from Microsoft's own release and iperf3 from the <a href="https://github.com/ar51an/iperf3-win-builds">ar51an/iperf3-win-builds</a> release, both pinned in the script and checked against their sha256 before anything runs.</p>
 	<h3>How much traffic does it use?</h3>
 	<p>Mostly the iperf3 tests: on a gigabit port up to about 1.2 GB per location and direction, so around 30 GB for a standard run over IPv4 and twice that with IPv6. <code>-l eu</code> keeps it to Europe, <code>-q</code> cuts each network test to 4 seconds.</p>
 	<h3>Why are my disk numbers so far from dd?</h3>

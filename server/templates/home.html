@@ -1,8 +1,12 @@
 {{define "main"}}{{$d := .Data}}
 <section class="hero">
-	<h1 class="d1">Benchmark a Linux server in one line.</h1>
-	<p class="lede">nodebench measures CPU, disk and network, prints plain tables and gives you a link to the result. No root, nothing installed, nothing left behind.</p>
-	<div class="cmd" id="run"><code id="cmd">{{.OneLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="cmd">Copy</button></div>
+	<h1 class="d1">Benchmark any server or computer in one line.</h1>
+	<p class="lede">nodebench measures CPU, disk and network on Linux, macOS and Windows, prints plain tables and gives you a link to the result. No root, nothing installed, nothing left behind.</p>
+	<div class="cmds" id="run">
+		<div class="cmd"><code id="cmd">{{.OneLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="cmd">Copy</button></div>
+		<div class="cmd ps"><code id="cmdw">{{.WinLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="cmdw">Copy</button></div>
+		<p class="small">Linux and macOS in a terminal, Windows in PowerShell.</p>
+	</div>
 	<div class="pill-row">
 		<span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9h6v6H9z"/></svg>openssl</span>
 		<span class="chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/></svg>fio</span>
@@ -184,8 +188,11 @@
 </section>
 
 <section class="cta-final">
-	<h2 class="d2">Your server, measured.</h2>
-	<p class="lede">Run it on any Linux box. The link at the end is yours to share.</p>
-	<div class="cmd"><code id="cmd2">{{.OneLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="cmd2">Copy</button></div>
+	<h2 class="d2">Your machine, measured.</h2>
+	<p class="lede">Run it on a server, a desktop or a laptop. The link at the end is yours to share.</p>
+	<div class="cmds">
+		<div class="cmd"><code id="cmd2">{{.OneLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="cmd2">Copy</button></div>
+		<div class="cmd ps"><code id="cmdw2">{{.WinLiner}}</code><button class="btn btn-light btn-sm" type="button" data-copy="cmdw2">Copy</button></div>
+	</div>
 </section>
 {{end}}
